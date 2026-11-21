@@ -11,18 +11,14 @@ function App() {
     const [authenticated, setAuthenticated] = useState(false)
     const [username, setUsername] = useState('')
 
-    const fetchHello = (authenticated) => {
+    const fetchHello = () => {
         setLoading(true)
         setApiError('')
 
-        const headers = authenticated && keycloak.token
-            ? {
+        fetch('http://localhost:8080/api/hello', {
+            headers: {
                 Authorization: `Bearer ${keycloak.token}`
             }
-            : {}
-
-        fetch('http://localhost:8080/api/hello', {
-            headers
         })
             .then((response) => {
                 if (!response.ok) {
@@ -53,14 +49,13 @@ function App() {
                         ?? keycloak.tokenParsed?.sub
                         ?? ''
                     )
-                }
 
-                fetchHello(authenticated)
+                    fetchHello()
+                }
             })
             .catch((error) => {
                 console.error('Failed to initialize Keycloak', error)
                 setAuthError('Failed to initialize Keycloak')
-                fetchHello(false)
             })
             .finally(() => {
                 setKeycloakReady(true)
@@ -89,45 +84,50 @@ function App() {
                 </p>
             )}
 
-            {keycloakReady && (
+            {keycloakReady && !authenticated && (
                 <section>
-                    <h2>Authentication</h2>
-
-                    {authenticated ? (
-                        <>
-                            <p>Logged in as: {username}</p>
-                            <button type="button" onClick={logout}>
-                                Logout
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <p>Not logged in</p>
-                            <button type="button" onClick={login}>
-                                Login
-                            </button>
-                        </>
-                    )}
+                    <h2>Login</h2>
+                    <p>バックエンド API を利用するにはログインしてください。</p>
+                    <button type="button" onClick={login}>
+                        Login with Keycloak
+                    </button>
                 </section>
             )}
 
-            <section>
-                <h2>Backend API</h2>
+            {keycloakReady && authenticated && (
+                <>
+                    <section>
+                        <h2>Authentication</h2>
+                        <p>Logged in as: {username}</p>
+                        <button type="button" onClick={logout}>
+                            Logout
+                        </button>
+                    </section>
 
-                {loading && <p>Loading...</p>}
+                    <section>
+                        <h2>Backend API</h2>
 
-                {apiError && (
-                    <p style={{color: 'red'}}>
-                        API Error: {apiError}
-                    </p>
-                )}
+                        {loading && <p>Loading...</p>}
 
-                {!loading && !apiError && (
-                    <p>Backend message: {message}</p>
-                )}
-            </section>
+                        {apiError && (
+                            <p style={{color: 'red'}}>
+                                API Error: {apiError}
+                            </p>
+                        )}
+
+                        {!loading && !apiError && message && (
+                            <p>Backend message: {message}</p>
+                        )}
+
+                        <button type="button" onClick={fetchHello}>
+                            Reload backend message
+                        </button>
+                    </section>
+                </>
+            )}
         </main>
     )
+
 
 }
 
