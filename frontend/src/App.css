@@ -1,0 +1,29 @@
+#root {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+main {
+    font-family: system-ui, sans-serif;
+}
+
+section {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+h1 {
+    font-size: 2rem;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
