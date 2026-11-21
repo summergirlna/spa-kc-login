@@ -32,7 +32,6 @@ public class RegistrationService {
     public RegistrationController.StartRegistrationResponse startRegistration(String email) {
         createDirectories();
 
-        // registrationIDって必要なのか？？ todo
         String registrationId = UUID.randomUUID().toString();
         String code = generateConfirmationCode();
 
