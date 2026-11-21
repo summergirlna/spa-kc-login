@@ -3,9 +3,9 @@ spring:
     name: spa-kc-login
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/spa_kc_login
-    username: app
-    password: app
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/spa_kc_login}
+    username: ${SPRING_DATASOURCE_USERNAME:app}
+    password: ${SPRING_DATASOURCE_PASSWORD:app}
     driver-class-name: org.postgresql.Driver
 
   sql:
@@ -16,14 +16,15 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: "http://localhost:8180/realms/spa-kc-login"
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8180/realms/spa-kc-login}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8180/realms/spa-kc-login/protocol/openid-connect/certs}
 
 app:
   keycloak:
     admin:
-      server-url: "http://localhost:8180"
-      realm: "spa-kc-login"
-      admin-realm: "master"
-      client-id: admin-cli
-      username: admin
-      password: admin
+      server-url: ${APP_KEYCLOAK_ADMIN_SERVER_URL:http://localhost:8180}
+      realm: ${APP_KEYCLOAK_ADMIN_REALM:spa-kc-login}
+      admin-realm: ${APP_KEYCLOAK_ADMIN_ADMIN_REALM:master}
+      client-id: ${APP_KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
+      username: ${APP_KEYCLOAK_ADMIN_USERNAME:admin}
+      password: ${APP_KEYCLOAK_ADMIN_PASSWORD:admin}

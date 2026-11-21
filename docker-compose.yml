@@ -32,5 +32,39 @@ services:
     depends_on:
       - postgres
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/spa_kc_login
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/spa-kc-login
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/spa-kc-login/protocol/openid-connect/certs
+      APP_KEYCLOAK_ADMIN_SERVER_URL: http://keycloak:8080
+      APP_KEYCLOAK_ADMIN_REALM: spa-kc-login
+      APP_KEYCLOAK_ADMIN_ADMIN_REALM: master
+      APP_KEYCLOAK_ADMIN_CLIENT_ID: admin-cli
+      APP_KEYCLOAK_ADMIN_USERNAME: admin
+      APP_KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./runtime-data:/app/runtime-data
+    depends_on:
+      - postgres
+      - keycloak
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+      - keycloak
+
 volumes:
   postgres-data:

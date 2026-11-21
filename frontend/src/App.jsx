@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react'
 import './App.css'
 import keycloak, {initKeycloak} from './keycloak'
 
-const API_BASE_URL = 'http://localhost:8080'
+const API_BASE_URL = ''
 
 function App() {
     const [screen, setScreen] = useState('login')
