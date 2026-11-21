@@ -8,6 +8,7 @@ import {RegisterCodeStep} from './RegisterCodeStep'
 import {RegisterCompleteStep} from './RegisterCompleteStep'
 import {RegisterEmailStep} from './RegisterEmailStep'
 import {RegisterPasswordStep} from './RegisterPasswordStep'
+import {RegisterMfaStep} from './RegisterMfaStep.jsx';
 
 export function RegistrationFlow({onBackToLogin}) {
     const [step, setStep] = useState('email')
@@ -16,6 +17,7 @@ export function RegistrationFlow({onBackToLogin}) {
     const [code, setCode] = useState('')
     const [password, setPassword] = useState('')
     const [registeredUserId, setRegisteredUserId] = useState('')
+    const [mfaType, setMfaType] = useState('')
     const [message, setMessage] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
@@ -26,6 +28,7 @@ export function RegistrationFlow({onBackToLogin}) {
         setEmail('')
         setCode('')
         setPassword('')
+        setMfaType('')
         setRegisteredUserId('')
         setMessage('')
         setError('')
@@ -69,6 +72,12 @@ export function RegistrationFlow({onBackToLogin}) {
             })
     }
 
+    const handlePasswordSubmit = () => {
+        setError('')
+        setMessage('')
+        setStep('mfa')
+    }
+
     const handleCompleteRegistration = () => {
         setError('')
         setMessage('')
@@ -77,6 +86,7 @@ export function RegistrationFlow({onBackToLogin}) {
         completeRegistration(registrationId, password)
             .then((data) => {
                 setRegisteredUserId(data.userId)
+                setPassword('')
                 setMessage('ユーザ登録が完了しました。')
                 setStep('complete')
             })
@@ -123,6 +133,19 @@ export function RegistrationFlow({onBackToLogin}) {
                 error={error}
                 loading={loading}
                 onPasswordChange={setPassword}
+                onCancel={resetAndBackToLogin}
+                onSubmit={handlePasswordSubmit}
+            />
+        )
+    }
+
+    if (step === 'mfa') {
+        return (
+            <RegisterMfaStep
+                mfaType={mfaType}
+                error={error}
+                loading={loading}
+                onMfaTypeChange={setMfaType}
                 onCancel={resetAndBackToLogin}
                 onSubmit={handleCompleteRegistration}
             />

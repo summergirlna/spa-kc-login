@@ -45,6 +45,13 @@ input {
     font: inherit;
 }
 
+input[type='radio'] {
+    display: inline-block;
+    width: auto;
+    max-width: none;
+    margin-right: 0.5rem;
+}
+
 input:focus {
     border-color: #646cff;
     outline: none;
