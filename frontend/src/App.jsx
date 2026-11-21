@@ -81,7 +81,7 @@ function App() {
 
     const logout = () => {
         keycloak.logout({
-            redirectUri: 'http://localhost:5173'
+            redirectUri: 'http://localhost'
         })
     }
 
@@ -321,11 +321,6 @@ function App() {
                     <p>払い出されたユーザID:</p>
                     <p>
                         <strong>{registeredUserId}</strong>
-                    </p>
-
-                    <p>
-                        今回のステップでは Keycloak ユーザはまだ作成していないため、
-                        このユーザIDではまだログインできません。
                     </p>
 
                     <button type="button" onClick={backToLogin}>
