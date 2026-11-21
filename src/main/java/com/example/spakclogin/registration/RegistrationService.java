@@ -1,6 +1,7 @@
 package com.example.spakclogin.registration;
 
 import com.example.spakclogin.keycloak.KeycloakAdminService;
+import com.example.spakclogin.mail.MailSender;
 import com.example.spakclogin.registration.dto.CompleteRegistrationResponse;
 import com.example.spakclogin.registration.dto.StartRegistrationResponse;
 import com.example.spakclogin.registration.model.RegistrationAttempt;
@@ -10,9 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -32,16 +30,12 @@ public class RegistrationService {
     private final RegistrationAttemptRepository registrationAttemptRepository;
     private final AppUserRepository appUserRepository;
     private final KeycloakAdminService keycloakAdminService;
+    private final MailSender mailSender;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
-    private final Path runtimeDataPath = Path.of("runtime-data");
-    private final Path mailsPath = runtimeDataPath.resolve("mails");
-
     @Transactional
     public StartRegistrationResponse startRegistration(String email) {
-        createDirectories();
-
         String registrationId = UUID.randomUUID().toString();
         String code = generateConfirmationCode();
 
@@ -58,7 +52,7 @@ public class RegistrationService {
                 now
         );
 
-        writeMailFile(registrationId, email, code);
+        mailSender.sendConfirmationCode(registrationId, email, code, CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
 
         return new StartRegistrationResponse(
                 registrationId, "Confirmation code generated. Please check runtime-data/mails."
@@ -142,34 +136,10 @@ public class RegistrationService {
         return appUserRepository.countByEmail(email) > 0;
     }
 
-    private void createDirectories() {
-        try {
-            Files.createDirectories(mailsPath);
-        } catch (IOException exception) {
-            throw new RegistrationException("Failed to create runtime data directories");
-        }
-    }
-
     private String generateConfirmationCode() {
         int upperBound = (int) Math.pow(10, CONFIRMATION_CODE_LENGTH);
         int value = secureRandom.nextInt(upperBound);
         return String.format("%06d", value);
-    }
-
-    private void writeMailFile(String registrationId, String email, String code) {
-        String content = """
-                To: %s
-                Subject: Confirmation code
-
-                Your confirmation code is: %s
-                This code expires in %d minutes.
-                """.formatted(email, code, CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
-
-        try {
-            Files.writeString(mailsPath.resolve(registrationId + ".txt"), content);
-        } catch (IOException exception) {
-            throw new RegistrationException("Failed to write mail file.");
-        }
     }
 
     private void validatePassword(String password) {
