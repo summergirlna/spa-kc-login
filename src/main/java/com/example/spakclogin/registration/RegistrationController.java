@@ -1,10 +1,7 @@
-package com.example.spakclogin;
+package com.example.spakclogin.registration;
 
+import com.example.spakclogin.registration.dto.*;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -38,52 +35,4 @@ public class RegistrationController {
         return new ErrorResponse(exception.getMessage());
     }
 
-    @Data
-    public static class StartRegistrationRequest {
-
-        @NotBlank
-        @Email
-        private String email;
-    }
-
-    @Data
-    public static class ConfirmCodeRequest {
-
-        @NotBlank
-        private String registrationId;
-
-        @NotBlank
-        @Size(min = 6, max = 6)
-        private String code;
-    }
-
-    @Data
-    public static class CompleteRegistrationRequest {
-
-        @NotBlank
-        private String registrationId;
-
-        @NotBlank
-        @Size(min = 8, max = 100)
-        private String password;
-    }
-
-    public record StartRegistrationResponse(
-            String registrationId,
-            String message
-    ) {}
-
-    public record ConfirmCodeResponse(
-            String message
-    ) {}
-
-    public record CompleteRegistrationResponse(
-            String userId,
-            String email,
-            String message
-    ) {}
-
-    public record ErrorResponse(
-            String message
-    ) {}
 }

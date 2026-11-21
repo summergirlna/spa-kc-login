@@ -1,5 +1,6 @@
-package com.example.spakclogin;
+package com.example.spakclogin.keycloak;
 
+import com.example.spakclogin.registration.RegistrationException;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;

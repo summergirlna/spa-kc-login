@@ -1,10 +1,12 @@
-package com.example.spakclogin;
+package com.example.spakclogin.registration;
 
+import com.example.spakclogin.keycloak.KeycloakAdminService;
+import com.example.spakclogin.registration.dto.CompleteRegistrationResponse;
+import com.example.spakclogin.registration.dto.StartRegistrationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,7 +14,6 @@ import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class RegistrationService {
     private final Path mailsPath = runtimeDataPath.resolve("mails");
 
     @Transactional
-    public RegistrationController.StartRegistrationResponse startRegistration(String email) {
+    public StartRegistrationResponse startRegistration(String email) {
         createDirectories();
 
         String registrationId = UUID.randomUUID().toString();
@@ -77,7 +78,7 @@ public class RegistrationService {
 
         writeMailFile(registrationId, email, code);
 
-        return new RegistrationController.StartRegistrationResponse(
+        return new StartRegistrationResponse(
                 registrationId, "Confirmation code generated. Please check runtime-data/mails."
         );
     }
@@ -117,7 +118,7 @@ public class RegistrationService {
     }
 
     @Transactional
-    public RegistrationController.CompleteRegistrationResponse completeRegistration(String registrationId, String password) {
+    public CompleteRegistrationResponse completeRegistration(String registrationId, String password) {
         RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
 
         if (!REGISTRATION_STATUS_VERIFIED.equals(attempt.status())) {
@@ -176,7 +177,7 @@ public class RegistrationService {
                 .param("registrationId", registrationId)
                 .update();
 
-        return new RegistrationController.CompleteRegistrationResponse(
+        return new CompleteRegistrationResponse(
                 userId,
                 attempt.email(),
                 "User registered."

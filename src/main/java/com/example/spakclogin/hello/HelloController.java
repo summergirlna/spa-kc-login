@@ -1,4 +1,4 @@
-package com.example.spakclogin;
+package com.example.spakclogin.hello;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;

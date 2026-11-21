@@ -1,4 +1,4 @@
-package com.example.spakclogin;
+package com.example.spakclogin.keycloak;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
