@@ -27,6 +27,7 @@ public class RegistrationService {
     private final Path registrationAttemptsPath = runtimeDataPath.resolve("registration-attempts");
     private final Path mailsPath = runtimeDataPath.resolve("mails");
     private final Path usersPath = runtimeDataPath.resolve("users");
+    private final KeycloakAdminService keycloakAdminService;
 
     public RegistrationController.StartRegistrationResponse startRegistration(String email) {
         createDirectories();
@@ -94,9 +95,16 @@ public class RegistrationService {
         String userId = generateNextUserId();
         OffsetDateTime now = OffsetDateTime.now();
 
+        String keycloakUserId = keycloakAdminService.createUser(
+                userId,
+                attempt.email(),
+                password
+        );
+
         RegisteredUser registeredUser = new RegisteredUser(
                 userId,
                 attempt.email(),
+                keycloakUserId,
                 now,
                 "Password was validated but not stored in this training step."
         );
@@ -139,6 +147,7 @@ public class RegistrationService {
     public record RegisteredUser(
             String userId,
             String email,
+            String keycloakUserId,
             OffsetDateTime createdAt,
             String note
     ) {

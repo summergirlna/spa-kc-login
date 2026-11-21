@@ -2,9 +2,18 @@ spring:
   application:
     name: spa-kc-login
 
-
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: "http://localhost:8180/realms/spa-kc-login"
+
+app:
+  keycloak:
+    admin:
+      server-url: "http://localhost:8180"
+      realm: "spa-kc-login"
+      admin-realm: "master"
+      client-id: admin-cli
+      username: admin
+      password: admin
