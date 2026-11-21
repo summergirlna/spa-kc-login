@@ -2,6 +2,8 @@ package com.example.spakclogin.registration;
 
 import com.example.spakclogin.keycloak.KeycloakAdminService;
 import com.example.spakclogin.mail.MailSender;
+import com.example.spakclogin.registration.component.ConfirmationCodeGenerator;
+import com.example.spakclogin.registration.component.PasswordValidator;
 import com.example.spakclogin.registration.dto.CompleteRegistrationResponse;
 import com.example.spakclogin.registration.dto.StartRegistrationResponse;
 import com.example.spakclogin.registration.model.RegistrationAttempt;
@@ -11,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -19,7 +20,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RegistrationService {
 
-    private static final int CONFIRMATION_CODE_LENGTH = 6;
     private static final int CONFIRMATION_CODE_MAX_EXPIRES_MINUTES = 10;
 
     private static final String REGISTRATION_STATUS_CODE_SENT = "CODE_SENT";
@@ -31,13 +31,13 @@ public class RegistrationService {
     private final AppUserRepository appUserRepository;
     private final KeycloakAdminService keycloakAdminService;
     private final MailSender mailSender;
-
-    private final SecureRandom secureRandom = new SecureRandom();
+    private final ConfirmationCodeGenerator confirmationCodeGenerator;
+    private final PasswordValidator passwordValidator;
 
     @Transactional
     public StartRegistrationResponse startRegistration(String email) {
         String registrationId = UUID.randomUUID().toString();
-        String code = generateConfirmationCode();
+        String code = confirmationCodeGenerator.generate();
 
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime expiresAt = now.plusMinutes(CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
@@ -95,7 +95,7 @@ public class RegistrationService {
             throw new RegistrationException("Confirmation code is not verified");
         }
 
-        validatePassword(password);
+        passwordValidator.validate(password);
 
         if (existsUserByEmail(attempt.email())) {
             throw new RegistrationException("Email is already registered");
@@ -134,25 +134,6 @@ public class RegistrationService {
 
     private boolean existsUserByEmail(String email) {
         return appUserRepository.countByEmail(email) > 0;
-    }
-
-    private String generateConfirmationCode() {
-        int upperBound = (int) Math.pow(10, CONFIRMATION_CODE_LENGTH);
-        int value = secureRandom.nextInt(upperBound);
-        return String.format("%06d", value);
-    }
-
-    private void validatePassword(String password) {
-        if (password.length() < 8) {
-            throw new RegistrationException("Password must be at least 8 characters.");
-        }
-
-        boolean hasLetter = password.chars().anyMatch(Character::isLetter);
-        boolean hasDigit = password.chars().anyMatch(Character::isDigit);
-
-        if (!hasLetter || !hasDigit) {
-            throw new RegistrationException("Password must contain both letters and digits.");
-        }
     }
 
     private String generateNextUserId() {
