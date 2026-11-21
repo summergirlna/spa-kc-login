@@ -8,3 +8,11 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_SPI_THEME_CACHE_THEMES: false
+      KC_SPI_THEME_CACHE_TEMPLATES: false
+    volumes:
+      - ./keycloak-themes:/opt/keycloak/themes
+      - keycloak-data:/opt/keycloak/data
+
+volumes:
+  keycloak-data:
