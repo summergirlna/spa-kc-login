@@ -15,8 +15,6 @@ services:
     image: quay.io/keycloak/keycloak:latest
     command:
       - start-dev
-    ports:
-      - "8180:8080"
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -27,6 +25,10 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: app
       KC_DB_PASSWORD: app
+
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME: http://localhost/auth
+      KC_PROXY_HEADERS: xforwarded
     volumes:
       - ./keycloak-themes:/opt/keycloak/themes
     depends_on:
@@ -36,15 +38,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    ports:
-      - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/spa_kc_login
       SPRING_DATASOURCE_USERNAME: app
       SPRING_DATASOURCE_PASSWORD: app
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8180/realms/spa-kc-login
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/spa-kc-login/protocol/openid-connect/certs
-      APP_KEYCLOAK_ADMIN_SERVER_URL: http://keycloak:8080
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost/auth/realms/spa-kc-login
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/spa-kc-login/protocol/openid-connect/certs
+      APP_KEYCLOAK_ADMIN_SERVER_URL: http://keycloak:8080/auth
       APP_KEYCLOAK_ADMIN_REALM: spa-kc-login
       APP_KEYCLOAK_ADMIN_ADMIN_REALM: master
       APP_KEYCLOAK_ADMIN_CLIENT_ID: admin-cli
@@ -60,9 +60,18 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
     depends_on:
+      - backend
+      - keycloak
+
+  nginx:
+    image: nginx:1.29
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
       - backend
       - keycloak
 
