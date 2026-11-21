@@ -59,6 +59,10 @@ input:focus {
     margin-left: 0.75rem;
 }
 
+.error-message {
+    color: #d32f2f;
+}
+
 code {
     padding: 0.15rem 0.3rem;
     border-radius: 4px;
