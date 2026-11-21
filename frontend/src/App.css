@@ -27,3 +27,40 @@ button {
     padding: 0.5rem 1rem;
     cursor: pointer;
 }
+
+label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+input {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    margin-top: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font: inherit;
+}
+
+input:focus {
+    border-color: #646cff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.18);
+}
+
+.button-row {
+    margin-top: 1.5rem;
+}
+
+.button-row button + button {
+    margin-left: 0.75rem;
+}
+
+code {
+    padding: 0.15rem 0.3rem;
+    border-radius: 4px;
+    background: #f0f0f0;
+}
