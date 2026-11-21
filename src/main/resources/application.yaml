@@ -19,6 +19,10 @@ spring:
           issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8180/realms/spa-kc-login}
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8180/realms/spa-kc-login/protocol/openid-connect/certs}
 
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
 app:
   keycloak:
     admin:

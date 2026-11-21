@@ -3,8 +3,10 @@ package com.example.spakclogin.registration;
 import com.example.spakclogin.keycloak.KeycloakAdminService;
 import com.example.spakclogin.registration.dto.CompleteRegistrationResponse;
 import com.example.spakclogin.registration.dto.StartRegistrationResponse;
+import com.example.spakclogin.registration.model.RegistrationAttempt;
+import com.example.spakclogin.registration.repository.AppUserRepository;
+import com.example.spakclogin.registration.repository.RegistrationAttemptRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +29,8 @@ public class RegistrationService {
     private static final String REGISTRATION_STATUS_COMPLETED = "COMPLETED";
     private static final String USER_STATUS_ACTIVE = "ACTIVE";
 
-    private final JdbcClient jdbcClient;
+    private final RegistrationAttemptRepository registrationAttemptRepository;
+    private final AppUserRepository appUserRepository;
     private final KeycloakAdminService keycloakAdminService;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -45,36 +48,15 @@ public class RegistrationService {
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime expiresAt = now.plusMinutes(CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
 
-        jdbcClient.sql("""
-                        INSERT INTO registration_attempts (
-                            registration_id,
-                            email,
-                            confirmation_code,
-                            status,
-                            verified_at,
-                            expires_at,
-                            created_at,
-                            updated_at
-                        )
-                        VALUES (
-                            :registrationId,
-                            :email,
-                            :confirmationCode,
-                            :status,
-                            NULL,
-                            :expiresAt,
-                            :createdAt,
-                            :updatedAt
-                        )
-                        """)
-                .param("registrationId", registrationId)
-                .param("email", email)
-                .param("confirmationCode", code)
-                .param("status", REGISTRATION_STATUS_CODE_SENT)
-                .param("expiresAt", expiresAt)
-                .param("createdAt", now)
-                .param("updatedAt", now)
-                .update();
+        registrationAttemptRepository.insert(
+                registrationId,
+                email,
+                code,
+                REGISTRATION_STATUS_CODE_SENT,
+                expiresAt,
+                now,
+                now
+        );
 
         writeMailFile(registrationId, email, code);
 
@@ -102,18 +84,12 @@ public class RegistrationService {
 
         OffsetDateTime now = OffsetDateTime.now();
 
-        jdbcClient.sql("""
-                        UPDATE registration_attempts
-                        SET status = :status,
-                            verified_at = :verifiedAt,
-                            updated_at = :updatedAt
-                        WHERE registration_id = :registrationId
-                        """)
-                .param("status", REGISTRATION_STATUS_VERIFIED)
-                .param("verifiedAt", now)
-                .param("updatedAt", now)
-                .param("registrationId", registrationId)
-                .update();
+        registrationAttemptRepository.updateVerified(
+                registrationId,
+                REGISTRATION_STATUS_VERIFIED,
+                now,
+                now
+        );
 
     }
 
@@ -140,42 +116,20 @@ public class RegistrationService {
                 password
         );
 
-        jdbcClient.sql("""
-                        INSERT INTO app_users (
-                            user_id,
-                            email,
-                            keycloak_user_id,
-                            status,
-                            created_at,
-                            updated_at
-                        )
-                        VALUES (
-                            :userId,
-                            :email,
-                            :keycloakUserId,
-                            :status,
-                            :createdAt,
-                            :updatedAt
-                        )
-                        """)
-                .param("userId", userId)
-                .param("email", attempt.email())
-                .param("keycloakUserId", keycloakUserId)
-                .param("status", USER_STATUS_ACTIVE)
-                .param("createdAt", now)
-                .param("updatedAt", now)
-                .update();
+        appUserRepository.insert(
+                userId,
+                attempt.email(),
+                keycloakUserId,
+                USER_STATUS_ACTIVE,
+                now,
+                now
+        );
 
-        jdbcClient.sql("""
-                        UPDATE registration_attempts
-                        SET status = :status,
-                            updated_at = :updatedAt
-                        WHERE registration_id = :registrationId
-                        """)
-                .param("status", REGISTRATION_STATUS_COMPLETED)
-                .param("updatedAt", now)
-                .param("registrationId", registrationId)
-                .update();
+        registrationAttemptRepository.updateStatus(
+                registrationId,
+                REGISTRATION_STATUS_COMPLETED,
+                now
+        );
 
         return new CompleteRegistrationResponse(
                 userId,
@@ -185,16 +139,7 @@ public class RegistrationService {
     }
 
     private boolean existsUserByEmail(String email) {
-        Integer count = jdbcClient.sql("""
-                        SELECT COUNT(*)
-                        FROM app_users
-                        WHERE email = :email
-                        """)
-                .param("email", email)
-                .query(Integer.class)
-                .single();
-
-        return count != null && count > 0;
+        return appUserRepository.countByEmail(email) > 0;
     }
 
     private void createDirectories() {
@@ -209,18 +154,6 @@ public class RegistrationService {
         int upperBound = (int) Math.pow(10, CONFIRMATION_CODE_LENGTH);
         int value = secureRandom.nextInt(upperBound);
         return String.format("%06d", value);
-    }
-
-    public record RegistrationAttempt(
-            String registrationId,
-            String email,
-            String confirmationCode,
-            String status,
-            OffsetDateTime verifiedAt,
-            OffsetDateTime expiresAt,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt
-    ) {
     }
 
     private void writeMailFile(String registrationId, String email, String code) {
@@ -253,42 +186,13 @@ public class RegistrationService {
     }
 
     private String generateNextUserId() {
-        Long nextValue = jdbcClient.sql("""
-                        SELECT COALESCE(MAX(id), 0) + 1
-                        FROM app_users
-                        """)
-                .query(Long.class)
-                .single();
-
+        long nextValue = appUserRepository.nextIdValue();
         return "U%08d".formatted(nextValue);
     }
 
     private RegistrationAttempt findRegistrationAttempt(String registrationId) {
-        return jdbcClient.sql("""
-                        SELECT
-                            registration_id,
-                            email,
-                            confirmation_code,
-                            status,
-                            verified_at,
-                            expires_at,
-                            created_at,
-                            updated_at
-                        FROM registration_attempts
-                        WHERE registration_id = :registrationId
-                        """)
-                .param("registrationId", registrationId)
-                .query((rs, rowNum) -> new RegistrationAttempt(
-                        rs.getString("registration_id"),
-                        rs.getString("email"),
-                        rs.getString("confirmation_code"),
-                        rs.getString("status"),
-                        rs.getObject("verified_at", OffsetDateTime.class),
-                        rs.getObject("expires_at", OffsetDateTime.class),
-                        rs.getObject("created_at", OffsetDateTime.class),
-                        rs.getObject("updated_at", OffsetDateTime.class)
-                ))
-                .optional()
+        return registrationAttemptRepository.findByRegistrationId(registrationId)
                 .orElseThrow(() -> new RegistrationException("Registration attempt was not found."));
+
     }
 }
