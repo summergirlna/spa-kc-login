@@ -2,6 +2,16 @@ spring:
   application:
     name: spa-kc-login
 
+  datasource:
+    url: jdbc:postgresql://localhost:5432/spa_kc_login
+    username: app
+    password: app
+    driver-class-name: org.postgresql.Driver
+
+  sql:
+    init:
+      mode: always
+
   security:
     oauth2:
       resourceserver:

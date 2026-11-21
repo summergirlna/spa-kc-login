@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     command:
@@ -10,9 +22,15 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_SPI_THEME_CACHE_THEMES: false
       KC_SPI_THEME_CACHE_TEMPLATES: false
+
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: app
+      KC_DB_PASSWORD: app
     volumes:
       - ./keycloak-themes:/opt/keycloak/themes
-      - keycloak-data:/opt/keycloak/data
+    depends_on:
+      - postgres
 
 volumes:
-  keycloak-data:
+  postgres-data:

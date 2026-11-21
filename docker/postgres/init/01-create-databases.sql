@@ -1,0 +1,2 @@
+CREATE DATABASE spa_kc_login;
+CREATE DATABASE keycloak;

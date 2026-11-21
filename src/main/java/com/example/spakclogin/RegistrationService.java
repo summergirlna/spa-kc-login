@@ -1,7 +1,9 @@
 package com.example.spakclogin;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -19,16 +21,20 @@ public class RegistrationService {
     private static final int CONFIRMATION_CODE_LENGTH = 6;
     private static final int CONFIRMATION_CODE_MAX_EXPIRES_MINUTES = 10;
 
-    private final ObjectMapper objectMapper;
+    private static final String REGISTRATION_STATUS_CODE_SENT = "CODE_SENT";
+    private static final String REGISTRATION_STATUS_VERIFIED = "VERIFIED";
+    private static final String REGISTRATION_STATUS_COMPLETED = "COMPLETED";
+    private static final String USER_STATUS_ACTIVE = "ACTIVE";
+
+    private final JdbcClient jdbcClient;
+    private final KeycloakAdminService keycloakAdminService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
     private final Path runtimeDataPath = Path.of("runtime-data");
-    private final Path registrationAttemptsPath = runtimeDataPath.resolve("registration-attempts");
     private final Path mailsPath = runtimeDataPath.resolve("mails");
-    private final Path usersPath = runtimeDataPath.resolve("users");
-    private final KeycloakAdminService keycloakAdminService;
 
+    @Transactional
     public RegistrationController.StartRegistrationResponse startRegistration(String email) {
         createDirectories();
 
@@ -36,16 +42,39 @@ public class RegistrationService {
         String code = generateConfirmationCode();
 
         OffsetDateTime now = OffsetDateTime.now();
-        RegistrationAttempt attempt = new RegistrationAttempt(
-                registrationId,
-                email,
-                code,
-                false,
-                now,
-                now.plusMinutes(CONFIRMATION_CODE_MAX_EXPIRES_MINUTES)
-        );
+        OffsetDateTime expiresAt = now.plusMinutes(CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
 
-        writeJson(registrationAttemptsPath.resolve(registrationId + ".json"), attempt);
+        jdbcClient.sql("""
+                        INSERT INTO registration_attempts (
+                            registration_id,
+                            email,
+                            confirmation_code,
+                            status,
+                            verified_at,
+                            expires_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            :registrationId,
+                            :email,
+                            :confirmationCode,
+                            :status,
+                            NULL,
+                            :expiresAt,
+                            :createdAt,
+                            :updatedAt
+                        )
+                        """)
+                .param("registrationId", registrationId)
+                .param("email", email)
+                .param("confirmationCode", code)
+                .param("status", REGISTRATION_STATUS_CODE_SENT)
+                .param("expiresAt", expiresAt)
+                .param("createdAt", now)
+                .param("updatedAt", now)
+                .update();
+
         writeMailFile(registrationId, email, code);
 
         return new RegistrationController.StartRegistrationResponse(
@@ -53,10 +82,12 @@ public class RegistrationService {
         );
     }
 
+    @Transactional
     public void confirmCode(String registrationId, String code) {
-        RegistrationAttempt attempt = readRegistrationAttempt(registrationId);
+        RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
 
-        if (attempt.verified()) {
+        if (REGISTRATION_STATUS_VERIFIED.equals(attempt.status())
+                || REGISTRATION_STATUS_COMPLETED.equals(attempt.status())) {
             return;
         }
 
@@ -64,32 +95,40 @@ public class RegistrationService {
             throw new RegistrationException("Confirmation code has expired");
         }
 
-        if (!attempt.code().equals(code)) {
+        if (!attempt.confirmationCode().equals(code)) {
             throw new RegistrationException("Confirmation code is invalid");
         }
 
-        RegistrationAttempt verifiedAttempt = new RegistrationAttempt(
-                attempt.registrationId(),
-                attempt.email(),
-                attempt.code(),
-                true,
-                attempt.createdAt(),
-                attempt.expiresAt()
-        );
+        OffsetDateTime now = OffsetDateTime.now();
 
-        writeJson(registrationAttemptsPath.resolve(registrationId + ".json"), verifiedAttempt);
+        jdbcClient.sql("""
+                        UPDATE registration_attempts
+                        SET status = :status,
+                            verified_at = :verifiedAt,
+                            updated_at = :updatedAt
+                        WHERE registration_id = :registrationId
+                        """)
+                .param("status", REGISTRATION_STATUS_VERIFIED)
+                .param("verifiedAt", now)
+                .param("updatedAt", now)
+                .param("registrationId", registrationId)
+                .update();
+
     }
 
+    @Transactional
     public RegistrationController.CompleteRegistrationResponse completeRegistration(String registrationId, String password) {
-        createDirectories();
+        RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
 
-        RegistrationAttempt attempt = readRegistrationAttempt(registrationId);
-
-        if (!attempt.verified()) {
+        if (!REGISTRATION_STATUS_VERIFIED.equals(attempt.status())) {
             throw new RegistrationException("Confirmation code is not verified");
         }
 
         validatePassword(password);
+
+        if (existsUserByEmail(attempt.email())) {
+            throw new RegistrationException("Email is already registered");
+        }
 
         String userId = generateNextUserId();
         OffsetDateTime now = OffsetDateTime.now();
@@ -100,15 +139,42 @@ public class RegistrationService {
                 password
         );
 
-        RegisteredUser registeredUser = new RegisteredUser(
-                userId,
-                attempt.email(),
-                keycloakUserId,
-                now,
-                "Password was validated but not stored in this training step."
-        );
+        jdbcClient.sql("""
+                        INSERT INTO app_users (
+                            user_id,
+                            email,
+                            keycloak_user_id,
+                            status,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            :userId,
+                            :email,
+                            :keycloakUserId,
+                            :status,
+                            :createdAt,
+                            :updatedAt
+                        )
+                        """)
+                .param("userId", userId)
+                .param("email", attempt.email())
+                .param("keycloakUserId", keycloakUserId)
+                .param("status", USER_STATUS_ACTIVE)
+                .param("createdAt", now)
+                .param("updatedAt", now)
+                .update();
 
-        writeJson(usersPath.resolve(userId + ".json"), registeredUser);
+        jdbcClient.sql("""
+                        UPDATE registration_attempts
+                        SET status = :status,
+                            updated_at = :updatedAt
+                        WHERE registration_id = :registrationId
+                        """)
+                .param("status", REGISTRATION_STATUS_COMPLETED)
+                .param("updatedAt", now)
+                .param("registrationId", registrationId)
+                .update();
 
         return new RegistrationController.CompleteRegistrationResponse(
                 userId,
@@ -117,11 +183,22 @@ public class RegistrationService {
         );
     }
 
+    private boolean existsUserByEmail(String email) {
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM app_users
+                        WHERE email = :email
+                        """)
+                .param("email", email)
+                .query(Integer.class)
+                .single();
+
+        return count != null && count > 0;
+    }
+
     private void createDirectories() {
         try {
-            Files.createDirectories(registrationAttemptsPath);
             Files.createDirectories(mailsPath);
-            Files.createDirectories(usersPath);
         } catch (IOException exception) {
             throw new RegistrationException("Failed to create runtime data directories");
         }
@@ -136,24 +213,13 @@ public class RegistrationService {
     public record RegistrationAttempt(
             String registrationId,
             String email,
-            String code,
-            boolean verified,
+            String confirmationCode,
+            String status,
+            OffsetDateTime verifiedAt,
+            OffsetDateTime expiresAt,
             OffsetDateTime createdAt,
-            OffsetDateTime expiresAt
+            OffsetDateTime updatedAt
     ) {
-    }
-
-    public record RegisteredUser(
-            String userId,
-            String email,
-            String keycloakUserId,
-            OffsetDateTime createdAt,
-            String note
-    ) {
-    }
-
-    private void writeJson(Path path, Object value) {
-        objectMapper.writeValue(path.toFile(), value);
     }
 
     private void writeMailFile(String registrationId, String email, String code) {
@@ -172,16 +238,6 @@ public class RegistrationService {
         }
     }
 
-    private RegistrationAttempt readRegistrationAttempt(String registrationId) {
-        Path path = registrationAttemptsPath.resolve(registrationId + ".json");
-
-        if (!Files.exists(path)) {
-            throw new RegistrationException("Registration attempt was not found.");
-        }
-
-        return objectMapper.readValue(path.toFile(), RegistrationAttempt.class);
-    }
-
     private void validatePassword(String password) {
         if (password.length() < 8) {
             throw new RegistrationException("Password must be at least 8 characters.");
@@ -196,19 +252,42 @@ public class RegistrationService {
     }
 
     private String generateNextUserId() {
-        long nextNumber;
+        Long nextValue = jdbcClient.sql("""
+                        SELECT COALESCE(MAX(id), 0) + 1
+                        FROM app_users
+                        """)
+                .query(Long.class)
+                .single();
 
-        try (Stream<Path> files = Files.exists(usersPath) ? Files.list(usersPath) : Stream.empty()) {
-            long count = files
-                    .filter(path -> path.getFileName().toString().startsWith("U"))
-                    .filter(path -> path.getFileName().toString().endsWith(".json"))
-                    .count();
+        return "U%08d".formatted(nextValue);
+    }
 
-            nextNumber = count + 1;
-        } catch (IOException exception) {
-            throw new RegistrationException("Failed to generate user ID.");
-        }
-
-        return "U%08d".formatted(nextNumber);
+    private RegistrationAttempt findRegistrationAttempt(String registrationId) {
+        return jdbcClient.sql("""
+                        SELECT
+                            registration_id,
+                            email,
+                            confirmation_code,
+                            status,
+                            verified_at,
+                            expires_at,
+                            created_at,
+                            updated_at
+                        FROM registration_attempts
+                        WHERE registration_id = :registrationId
+                        """)
+                .param("registrationId", registrationId)
+                .query((rs, rowNum) -> new RegistrationAttempt(
+                        rs.getString("registration_id"),
+                        rs.getString("email"),
+                        rs.getString("confirmation_code"),
+                        rs.getString("status"),
+                        rs.getObject("verified_at", OffsetDateTime.class),
+                        rs.getObject("expires_at", OffsetDateTime.class),
+                        rs.getObject("created_at", OffsetDateTime.class),
+                        rs.getObject("updated_at", OffsetDateTime.class)
+                ))
+                .optional()
+                .orElseThrow(() -> new RegistrationException("Registration attempt was not found."));
     }
 }
