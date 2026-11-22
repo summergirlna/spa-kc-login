@@ -12,7 +12,9 @@ services:
       - ./docker/postgres/init:/docker-entrypoint-initdb.d
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    build:
+      context: .
+      dockerfile: keycloak-email-otp-provider/Dockerfile
     command:
       - start-dev
     environment:
