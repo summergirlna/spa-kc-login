@@ -16,7 +16,5 @@ public class KeycloakAdminProperties {
 
     private String clientId;
 
-    private String username;
-
-    private String password;
+    private String clientSecret;
 }

@@ -73,10 +73,9 @@ public class KeycloakAdminService {
 
     private String getAdminAccessToken() {
         LinkedMultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("grant_type", "password");
+        form.add("grant_type", "client_credentials");
         form.add("client_id", properties.getClientId());
-        form.add("username", properties.getUsername());
-        form.add("password", properties.getPassword());
+        form.add("client_secret", properties.getClientSecret());
 
         TokenResponse response = restClient.post()
                 .uri(properties.getServerUrl()

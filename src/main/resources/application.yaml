@@ -28,7 +28,6 @@ app:
     admin:
       server-url: ${APP_KEYCLOAK_ADMIN_SERVER_URL:http://localhost:8180}
       realm: ${APP_KEYCLOAK_ADMIN_REALM:spa-kc-login}
-      admin-realm: ${APP_KEYCLOAK_ADMIN_ADMIN_REALM:master}
-      client-id: ${APP_KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
-      username: ${APP_KEYCLOAK_ADMIN_USERNAME:admin}
-      password: ${APP_KEYCLOAK_ADMIN_PASSWORD:admin}
+      admin-realm: ${APP_KEYCLOAK_ADMIN_ADMIN_REALM:spa-kc-login}
+      client-id: ${APP_KEYCLOAK_ADMIN_CLIENT_ID:registration-service}
+      client-secret: ${APP_KEYCLOAK_ADMIN_CLIENT_SECRET:change-me}

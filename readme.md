@@ -27,16 +27,30 @@ keycloak設定
 - Client
   - ClientID
     - spa-client
-  - Root URL
-    - http://localhost/
-  - Home URL
-    - http://localhost/
-  - Valid redirect URIs
-    - http://localhost/*
-  - Valid post logout redirect URIs
-    - http://localhost/*
-  - Web origins
-    - http://localhost
+      - Root URL
+        - http://localhost/
+      - Home URL
+        - http://localhost/
+      - Valid redirect URIs
+        - http://localhost/*
+      - Valid post logout redirect URIs
+        - http://localhost/*
+      - Web origins
+        - http://localhost
+    - registration-service
+      - Client authentication 
+        - On
+      - Authentication flow
+        - Standard Flow
+          - Off
+        - Direct access grants
+          - Off
+        - Service account roles
+          - On
+      - Service accounts roles
+        - view-users
+        - manage-users
+        - query-users
 - Theme
   - Login theme
     - spa-login
