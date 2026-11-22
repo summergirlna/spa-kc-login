@@ -5,6 +5,7 @@ import {fetchHello} from "./api/helloApi.js";
 import {LoginSection} from "./features/auth/LoginSection.jsx";
 import {RegistrationFlow} from "./features/registration/RegistrationFlow.jsx";
 import {AuthenticatedSection} from "./features/auth/AuthenticatedSection.jsx";
+import {PasswordResetFlow} from "./features/password-reset/PasswordResetFlow.jsx";
 
 function App() {
     const [screen, setScreen] = useState('login')
@@ -90,11 +91,16 @@ function App() {
                 <LoginSection
                     onLogin={login}
                     onCreateAccount={() => setScreen('registration')}
+                    onForgotPassword={() => setScreen('passwordReset')}
                 />
             )}
 
             {keycloakReady && !authenticated && screen === 'registration' && (
                 <RegistrationFlow onBackToLogin={() => setScreen('login')}/>
+            )}
+
+            {keycloakReady && !authenticated && screen === 'passwordReset' && (
+                <PasswordResetFlow onBackToLogin={() => setScreen('login')}/>
             )}
 
             {keycloakReady && authenticated && (

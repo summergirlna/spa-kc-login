@@ -25,3 +25,20 @@ CREATE TABLE IF NOT EXISTS app_users (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS password_reset_attempts (
+    reset_id VARCHAR(36) PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    confirmation_code VARCHAR(6) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    verified_at TIMESTAMP WITH TIME ZONE NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_attempts_email
+    ON password_reset_attempts (email);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_attempts_expires_at
+    ON password_reset_attempts (expires_at);

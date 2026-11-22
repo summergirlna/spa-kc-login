@@ -1,4 +1,4 @@
-export function LoginSection({onLogin, onCreateAccount}) {
+export function LoginSection({onLogin, onCreateAccount, onForgotPassword}) {
     return (
         <section>
             <h2>Login</h2>
@@ -10,6 +10,10 @@ export function LoginSection({onLogin, onCreateAccount}) {
 
             <button type="button" onClick={onCreateAccount}>
                 Create account
+            </button>
+
+            <button type="button" onClick={onForgotPassword}>
+                Forgot password?
             </button>
         </section>
     )

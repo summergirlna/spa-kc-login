@@ -31,6 +31,25 @@ public class FileMailSender implements MailSender {
         }
     }
 
+    @Override
+    public void sendPasswordResetCode(String resetId, String email, String code, int expiresInMinutes) {
+        createDirectories();
+
+        String content = """
+                To: %s
+                Subject: Password reset code
+
+                Your password reset code is: %s
+                This code expires in %d minutes.
+                """.formatted(email, code, expiresInMinutes);
+
+        try {
+            Files.writeString(mailsPath.resolve("password-reset-" + resetId + ".txt"), content);
+        } catch (IOException exception) {
+            throw new MailSendException("Failed to write mail file.", exception);
+        }
+    }
+
     private void createDirectories() {
         try {
             Files.createDirectories(mailsPath);

@@ -4,16 +4,19 @@ import com.example.spakclogin.registration.RegistrationException;
 import com.example.spakclogin.registration.model.MfaType;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +66,52 @@ public class KeycloakAdminService {
         }
     }
 
+    public Optional<String> findUserIdByEmail(String email) {
+        String accessToken = getAdminAccessToken();
+
+        List<KeycloakUserResponse> users = restClient.get()
+                .uri(UriComponentsBuilder
+                        .fromUriString(properties.getServerUrl() + "/admin/realms/" + properties.getRealm() + "/users")
+                        .queryParam("email", email)
+                        .queryParam("exact", true)
+                        .build()
+                        .toUri())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<KeycloakUserResponse>>() {
+                });
+
+        if (users == null || users.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return users.stream()
+                .filter(user -> email.equalsIgnoreCase(user.email()))
+                .map(KeycloakUserResponse::id)
+                .findFirst();
+    }
+
+    public void resetPassword(String keycloakUserId, String password) {
+        String accessToken = getAdminAccessToken();
+
+        restClient.put()
+                .uri(properties.getServerUrl()
+                        + "/admin/realms/"
+                        + properties.getRealm()
+                        + "/users/"
+                        + keycloakUserId
+                        + "/reset-password")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new CredentialRequest(
+                        "password",
+                        password,
+                        false
+                ))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     private List<String> requiredActionsFor(MfaType mfaType) {
         if (mfaType == MfaType.TOTP) {
             return List.of("CONFIGURE_TOTP");
@@ -92,6 +141,13 @@ public class KeycloakAdminService {
         }
 
         return response.accessToken();
+    }
+
+    public record KeycloakUserResponse(
+            String id,
+            String username,
+            String email
+    ) {
     }
 
     public record TokenResponse(
