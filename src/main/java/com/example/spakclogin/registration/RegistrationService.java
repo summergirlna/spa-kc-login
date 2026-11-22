@@ -35,6 +35,15 @@ public class RegistrationService {
     private final ConfirmationCodeGenerator confirmationCodeGenerator;
     private final PasswordValidator passwordValidator;
 
+    /// 仮登録開始処理
+    ///
+    /// 1. 仮登録IDを生成する
+    /// 2. 仮登録用コードを生成する
+    /// 3. 仮登録の有効期限を設定する
+    /// 4. 仮登録用レコード情報を生成する(ステータスは仮登録コード送信)
+    /// 5. 仮登録メールを送信する
+    /// @param email メールアドレス
+    /// @return @{@link StartRegistrationResponse}
     @Transactional
     public StartRegistrationResponse startRegistration(String email) {
         String registrationId = UUID.randomUUID().toString();
@@ -57,6 +66,41 @@ public class RegistrationService {
 
         return new StartRegistrationResponse(
                 registrationId, "Confirmation code generated. Please check runtime-data/mails."
+        );
+    }
+
+    @Transactional
+    public StartRegistrationResponse resendConfirmationCode(String registrationId) {
+        RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
+
+        if (REGISTRATION_STATUS_VERIFIED.equals(attempt.status())
+                || REGISTRATION_STATUS_COMPLETED.equals(attempt.status())) {
+            throw new RegistrationException("Confirmation code cannot be resent for this registration.");
+        }
+
+        String code = confirmationCodeGenerator.generate();
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime expiresAt = now.plusMinutes(CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
+
+        registrationAttemptRepository.updateConfirmationCode(
+                registrationId,
+                code,
+                REGISTRATION_STATUS_CODE_SENT,
+                expiresAt,
+                now
+        );
+
+        mailSender.sendConfirmationCode(
+                registrationId,
+                attempt.email(),
+                code,
+                CONFIRMATION_CODE_MAX_EXPIRES_MINUTES
+        );
+
+        return new StartRegistrationResponse(
+                registrationId,
+                "Confirmation code resent. Please check runtime-data/mails."
         );
     }
 

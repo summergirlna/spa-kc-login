@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {
     completeRegistration,
-    confirmRegistrationCode,
+    confirmRegistrationCode, resendRegistrationCode,
     startRegistration
 } from '../../api/registrationApi'
 import {RegisterCodeStep} from './RegisterCodeStep'
@@ -72,6 +72,24 @@ export function RegistrationFlow({onBackToLogin}) {
             })
     }
 
+    const handleResendRegistrationCode = () => {
+        setError('')
+        setMessage('')
+        setLoading(true)
+
+        resendRegistrationCode(registrationId)
+            .then(() => {
+                setCode('')
+                setMessage('確認コードを再送しました。runtime-data/mails を確認してください。')
+            })
+            .catch((error) => {
+                setError(error.message)
+            })
+            .finally(() => {
+                setLoading(false)
+            })
+    }
+
     const handlePasswordSubmit = () => {
         setError('')
         setMessage('')
@@ -120,6 +138,7 @@ export function RegistrationFlow({onBackToLogin}) {
                 loading={loading}
                 onCodeChange={setCode}
                 onCancel={resetAndBackToLogin}
+                onResend={handleResendRegistrationCode}
                 onSubmit={handleConfirmRegistration}
             />
         )

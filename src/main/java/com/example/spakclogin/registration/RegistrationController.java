@@ -18,6 +18,13 @@ public class RegistrationController {
         return registrationService.startRegistration(request.getEmail());
     }
 
+    @PostMapping("/resend-code")
+    public StartRegistrationResponse resendConfirmationCode(
+            @Valid @RequestBody ResendConfirmationCodeRequest request
+    ) {
+        return registrationService.resendConfirmationCode(request.getRegistrationId());
+    }
+
     @PostMapping("/confirm-code")
     public ConfirmCodeResponse confirmCode(@Valid @RequestBody ConfirmCodeRequest request) {
         registrationService.confirmCode(request.getRegistrationId(), request.getCode());

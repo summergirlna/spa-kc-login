@@ -8,6 +8,7 @@ export function RegisterCodeStep({
                                      loading,
                                      onCodeChange,
                                      onCancel,
+                                     onResend,
                                      onSubmit
                                  }) {
     return (
@@ -34,6 +35,13 @@ export function RegisterCodeStep({
             <ButtonRow>
                 <button type="button" onClick={onCancel}>
                     Cancel
+                </button>
+                <button
+                    type="button"
+                    onClick={onResend}
+                    disabled={loading}
+                >
+                    確認コード再送
                 </button>
                 <button
                     type="button"

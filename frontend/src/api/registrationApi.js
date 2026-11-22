@@ -6,6 +6,12 @@ export function startRegistration(email) {
     })
 }
 
+export function resendRegistrationCode(registrationId) {
+    return postJson('/api/registration/resend-code', {
+        registrationId
+    })
+}
+
 export function confirmRegistrationCode(registrationId, code) {
     return postJson('/api/registration/confirm-code', {
         registrationId,
