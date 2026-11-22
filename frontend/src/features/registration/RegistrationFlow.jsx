@@ -83,7 +83,7 @@ export function RegistrationFlow({onBackToLogin}) {
         setMessage('')
         setLoading(true)
 
-        completeRegistration(registrationId, password)
+        completeRegistration(registrationId, password, mfaType)
             .then((data) => {
                 setRegisteredUserId(data.userId)
                 setPassword('')

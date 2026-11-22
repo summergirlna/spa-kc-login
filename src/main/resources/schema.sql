@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS app_users (
     user_id VARCHAR(20) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     keycloak_user_id VARCHAR(100) UNIQUE,
+    mfa_type VARCHAR(20) NOT NULL,
     status VARCHAR(30) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL

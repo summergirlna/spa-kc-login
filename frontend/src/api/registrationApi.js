@@ -13,9 +13,10 @@ export function confirmRegistrationCode(registrationId, code) {
     })
 }
 
-export function completeRegistration(registrationId, password) {
+export function completeRegistration(registrationId, password, mfaType) {
     return postJson('/api/registration/complete', {
         registrationId,
-        password
+        password,
+        mfaType
     })
 }

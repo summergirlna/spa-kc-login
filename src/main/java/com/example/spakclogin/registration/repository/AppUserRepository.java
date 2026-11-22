@@ -28,6 +28,7 @@ public interface AppUserRepository {
                 user_id,
                 email,
                 keycloak_user_id,
+                mfa_type,
                 status,
                 created_at,
                 updated_at
@@ -36,6 +37,7 @@ public interface AppUserRepository {
                 #{userId},
                 #{email},
                 #{keycloakUserId},
+                #{mfaType},
                 #{status},
                 #{createdAt},
                 #{updatedAt}
@@ -45,6 +47,7 @@ public interface AppUserRepository {
             @Param("userId") String userId,
             @Param("email") String email,
             @Param("keycloakUserId") String keycloakUserId,
+            @Param("mfaType") String mfaType,
             @Param("status") String status,
             @Param("createdAt") OffsetDateTime createdAt,
             @Param("updatedAt") OffsetDateTime updatedAt

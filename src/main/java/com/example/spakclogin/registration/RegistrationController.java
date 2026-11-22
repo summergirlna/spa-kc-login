@@ -26,7 +26,11 @@ public class RegistrationController {
 
     @PostMapping("/complete")
     public CompleteRegistrationResponse completeRegistration(@Valid @RequestBody CompleteRegistrationRequest request) {
-        return registrationService.completeRegistration(request.getRegistrationId(), request.getPassword());
+        return registrationService.completeRegistration(
+                request.getRegistrationId(),
+                request.getPassword(),
+                request.getMfaType()
+        );
     }
 
     @ExceptionHandler(RegistrationException.class)

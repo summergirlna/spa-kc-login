@@ -6,6 +6,7 @@ import com.example.spakclogin.registration.component.ConfirmationCodeGenerator;
 import com.example.spakclogin.registration.component.PasswordValidator;
 import com.example.spakclogin.registration.dto.CompleteRegistrationResponse;
 import com.example.spakclogin.registration.dto.StartRegistrationResponse;
+import com.example.spakclogin.registration.model.MfaType;
 import com.example.spakclogin.registration.model.RegistrationAttempt;
 import com.example.spakclogin.registration.repository.AppUserRepository;
 import com.example.spakclogin.registration.repository.RegistrationAttemptRepository;
@@ -88,7 +89,7 @@ public class RegistrationService {
     }
 
     @Transactional
-    public CompleteRegistrationResponse completeRegistration(String registrationId, String password) {
+    public CompleteRegistrationResponse completeRegistration(String registrationId, String password, MfaType mfaType) {
         RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
 
         if (!REGISTRATION_STATUS_VERIFIED.equals(attempt.status())) {
@@ -114,6 +115,7 @@ public class RegistrationService {
                 userId,
                 attempt.email(),
                 keycloakUserId,
+                mfaType.name(),
                 USER_STATUS_ACTIVE,
                 now,
                 now
