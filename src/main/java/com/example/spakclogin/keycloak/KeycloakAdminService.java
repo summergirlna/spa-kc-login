@@ -37,6 +37,7 @@ public class KeycloakAdminService {
                             true,
                             true,
                             Map.of("mfa_type", List.of(mfaType.name())),
+                            requiredActionsFor(mfaType),
                             List.of(new CredentialRequest(
                                     "password",
                                     password,
@@ -60,6 +61,14 @@ public class KeycloakAdminService {
         } catch (HttpClientErrorException.Conflict exception) {
             throw new RegistrationException("Keycloak user already exists.");
         }
+    }
+
+    private List<String> requiredActionsFor(MfaType mfaType) {
+        if (mfaType == MfaType.TOTP) {
+            return List.of("CONFIGURE_TOTP");
+        }
+
+        return List.of();
     }
 
     private String getAdminAccessToken() {
@@ -98,6 +107,7 @@ public class KeycloakAdminService {
             Boolean enabled,
             Boolean emailVerified,
             Map<String, List<String>> attributes,
+            List<String> requiredActions,
             List<CredentialRequest> credentials
     ) {
     }
