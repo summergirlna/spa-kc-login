@@ -6,6 +6,7 @@ export function AuthenticatedSection({
                                          apiError,
                                          message,
                                          onLogout,
+                                         onChangePassword,
                                          onReload
                                      }) {
     return (
@@ -13,6 +14,9 @@ export function AuthenticatedSection({
             <section>
                 <h2>Authentication</h2>
                 <p>Logged in as: {username}</p>
+                <button type="button" onClick={onChangePassword}>
+                    Change password
+                </button>
                 <button type="button" onClick={onLogout}>
                     Logout
                 </button>

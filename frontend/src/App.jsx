@@ -61,6 +61,13 @@ function App() {
         keycloak.login()
     }
 
+    const changePassword = () => {
+        keycloak.login({
+            action: 'UPDATE_PASSWORD',
+            redirectUri: window.location.origin
+        })
+    }
+
     const logout = () => {
         keycloak.logout({
             redirectUri: 'http://localhost'
@@ -97,6 +104,7 @@ function App() {
                     apiError={apiError}
                     message={message}
                     onLogout={logout}
+                    onChangePassword={changePassword}
                     onReload={loadHello}
                 />
             )}
