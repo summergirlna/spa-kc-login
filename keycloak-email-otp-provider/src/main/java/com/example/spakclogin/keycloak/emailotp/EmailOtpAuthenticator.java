@@ -1,5 +1,6 @@
 package com.example.spakclogin.keycloak.emailotp;
 
+import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.Authenticator;
@@ -13,6 +14,7 @@ public class EmailOtpAuthenticator implements Authenticator {
 
     private static final String MFA_TYPE_ATTRIBUTE = "mfa_type";
     private static final String MFA_TYPE_EMAIL = "EMAIL";
+    private static final String FIXED_OTP = "123456";
 
     @Override
     public void authenticate(AuthenticationFlowContext context) {
@@ -37,17 +39,42 @@ public class EmailOtpAuthenticator implements Authenticator {
         }
 
         logger.infof(
-                "Email OTP Authenticator target user detected. username=%s, mfa_type=%s",
+                "Email OTP challenge displayed. username=%s, mfa_type=%s",
                 user.getUsername(),
                 mfaType
         );
 
-        context.success();
+        Response challenge = context.form()
+                .createForm("email-otp.ftl");
+
+        context.challenge(challenge);
     }
 
     @Override
     public void action(AuthenticationFlowContext context) {
-        context.success();
+        String otp = context.getHttpRequest()
+                .getDecodedFormParameters()
+                .getFirst("otp");
+
+        if (FIXED_OTP.equals(otp)) {
+            logger.infof(
+                    "Email OTP verification succeeded. username=%s",
+                    context.getUser().getUsername()
+            );
+            context.success();
+            return;
+        }
+
+        logger.infof(
+                "Email OTP verification failed. username=%s",
+                context.getUser().getUsername()
+        );
+
+        Response challenge = context.form()
+                .setError("Invalid verification code.")
+                .createForm("email-otp.ftl");
+
+        context.challenge(challenge);
     }
 
     @Override
