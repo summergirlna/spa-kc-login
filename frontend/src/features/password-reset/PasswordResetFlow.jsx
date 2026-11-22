@@ -4,7 +4,9 @@ import {
     confirmPasswordResetCode,
     startPasswordReset
 } from '../../api/passwordResetApi'
-import {ErrorMessage} from '../../components/ErrorMessage'
+import {EmailStep} from "../../components/EmailStep.jsx";
+import {CodeStep} from "../../components/CodeStep.jsx";
+import {PasswordStep} from "../../components/PasswordStep.jsx";
 
 export function PasswordResetFlow({onBackToLogin}) {
     const [step, setStep] = useState('email')
@@ -85,105 +87,53 @@ export function PasswordResetFlow({onBackToLogin}) {
 
     if (step === 'email') {
         return (
-            <section>
-                <h2>Password reset</h2>
-                <p>登録済みのメールアドレスを入力してください。</p>
-
-                {message && <p>{message}</p>}
-
-                <label>
-                    Email
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="user@example.com"
-                    />
-                </label>
-
-                <ErrorMessage message={error}/>
-
-                <button type="button" onClick={resetAndBackToLogin}>
-                    Back to login
-                </button>
-                <button
-                    type="button"
-                    onClick={handleStartPasswordReset}
-                    disabled={loading || email.length === 0}
-                >
-                    {loading ? 'Sending...' : 'Send code'}
-                </button>
-            </section>
+            <EmailStep
+                title="Password reset"
+                description="登録済みのメールアドレスを入力してください。"
+                email={email}
+                message={message}
+                error={error}
+                loading={loading}
+                submitLabel="Send code"
+                loadingLabel="Sending..."
+                onEmailChange={setEmail}
+                onBack={resetAndBackToLogin}
+                onSubmit={handleStartPasswordReset}
+            />
         )
     }
 
     if (step === 'code') {
         return (
-            <section>
-                <h2>Password reset code</h2>
-                <p>確認コードを入力してください。</p>
-                <p>確認コードは <code>runtime-data/mails</code> 配下に出力されています。</p>
-
-                {message && <p>{message}</p>}
-
-                <label>
-                    Confirmation code
-                    <input
-                        type="text"
-                        value={code}
-                        onChange={(event) => setCode(event.target.value)}
-                        placeholder="123456"
-                        maxLength={6}
-                    />
-                </label>
-
-                <ErrorMessage message={error}/>
-
-                <button type="button" onClick={resetAndBackToLogin}>
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    onClick={handleConfirmCode}
-                    disabled={loading || code.length !== 6}
-                >
-                    {loading ? 'Checking...' : 'Next'}
-                </button>
-            </section>
+            <CodeStep
+                title="Password reset code"
+                description="確認コードを入力してください。"
+                code={code}
+                message={message}
+                error={error}
+                loading={loading}
+                onCodeChange={setCode}
+                onCancel={resetAndBackToLogin}
+                onSubmit={handleConfirmCode}
+            />
         )
     }
 
     if (step === 'password') {
         return (
-            <section>
-                <h2>New password</h2>
-                <p>新しいパスワードを入力してください。</p>
-
-                {message && <p>{message}</p>}
-
-                <label>
-                    New password
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        placeholder="New password"
-                    />
-                </label>
-
-                <ErrorMessage message={error}/>
-
-                <button type="button" onClick={resetAndBackToLogin}>
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    onClick={handleCompletePasswordReset}
-                    disabled={loading || password.length === 0}
-                >
-                    {loading ? 'Changing...' : 'Change password'}
-                </button>
-            </section>
+            <PasswordStep
+                title="New password"
+                description="新しいパスワードを入力してください。"
+                password={password}
+                message={message}
+                error={error}
+                loading={loading}
+                submitLabel="Change password"
+                loadingLabel="Changing..."
+                onPasswordChange={setPassword}
+                onCancel={resetAndBackToLogin}
+                onSubmit={handleCompletePasswordReset}
+            />
         )
     }
 

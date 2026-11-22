@@ -1,5 +1,9 @@
 package com.example.spakclogin.passwordreset;
 
+import com.example.spakclogin.common.code.VerificationCodeIssue;
+import com.example.spakclogin.common.code.VerificationCodeIssuer;
+import com.example.spakclogin.common.code.VerificationCodeStatus;
+import com.example.spakclogin.common.code.VerificationCodeValidator;
 import com.example.spakclogin.keycloak.KeycloakAdminService;
 import com.example.spakclogin.mail.MailSender;
 import com.example.spakclogin.passwordreset.dto.CompletePasswordResetResponse;
@@ -7,7 +11,6 @@ import com.example.spakclogin.passwordreset.dto.StartPasswordResetResponse;
 import com.example.spakclogin.passwordreset.model.PasswordResetAttempt;
 import com.example.spakclogin.passwordreset.repository.PasswordResetAttemptRepository;
 import com.example.spakclogin.registration.RegistrationException;
-import com.example.spakclogin.registration.component.ConfirmationCodeGenerator;
 import com.example.spakclogin.registration.component.PasswordValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,16 +23,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PasswordResetService {
 
-    private static final int PASSWORD_RESET_CODE_EXPIRES_MINUTES = 10;
-
-    private static final String PASSWORD_RESET_STATUS_CODE_SENT = "CODE_SENT";
-    private static final String PASSWORD_RESET_STATUS_VERIFIED = "VERIFIED";
-    private static final String PASSWORD_RESET_STATUS_COMPLETED = "COMPLETED";
-
     private final PasswordResetAttemptRepository passwordResetAttemptRepository;
     private final KeycloakAdminService keycloakAdminService;
     private final MailSender mailSender;
-    private final ConfirmationCodeGenerator confirmationCodeGenerator;
+    private final VerificationCodeIssuer verificationCodeIssuer;
+    private final VerificationCodeValidator verificationCodeValidator;
     private final PasswordValidator passwordValidator;
 
     @Transactional
@@ -38,26 +36,23 @@ public class PasswordResetService {
                 .orElseThrow(() -> new RegistrationException("User was not found."));
 
         String resetId = UUID.randomUUID().toString();
-        String code = confirmationCodeGenerator.generate();
-
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime expiresAt = now.plusMinutes(PASSWORD_RESET_CODE_EXPIRES_MINUTES);
+        VerificationCodeIssue issue = verificationCodeIssuer.issue();
 
         passwordResetAttemptRepository.insert(
                 resetId,
                 email,
-                code,
-                PASSWORD_RESET_STATUS_CODE_SENT,
-                expiresAt,
-                now,
-                now
+                issue.code(),
+                VerificationCodeStatus.CODE_SENT.name(),
+                issue.expiresAt(),
+                issue.issuedAt(),
+                issue.issuedAt()
         );
 
         mailSender.sendPasswordResetCode(
                 resetId,
                 email,
-                code,
-                PASSWORD_RESET_CODE_EXPIRES_MINUTES
+                issue.code(),
+                issue.expiresInMinutes()
         );
 
         return new StartPasswordResetResponse(
@@ -70,24 +65,27 @@ public class PasswordResetService {
     public void confirmCode(String resetId, String code) {
         PasswordResetAttempt attempt = findPasswordResetAttempt(resetId);
 
-        if (PASSWORD_RESET_STATUS_VERIFIED.equals(attempt.status())
-                || PASSWORD_RESET_STATUS_COMPLETED.equals(attempt.status())) {
+        if (VerificationCodeStatus.VERIFIED.name().equals(attempt.status())
+                || VerificationCodeStatus.COMPLETED.name().equals(attempt.status())) {
             return;
         }
 
-        if (OffsetDateTime.now().isAfter(attempt.expiresAt())) {
-            throw new RegistrationException("Password reset code has expired");
-        }
+        verificationCodeValidator.validateNotExpired(
+                attempt.expiresAt(),
+                "Password reset code has expired"
+        );
 
-        if (!attempt.confirmationCode().equals(code)) {
-            throw new RegistrationException("Password reset code is invalid");
-        }
+        verificationCodeValidator.validateCode(
+                attempt.confirmationCode(),
+                code,
+                "Password reset code is invalid"
+        );
 
         OffsetDateTime now = OffsetDateTime.now();
 
         passwordResetAttemptRepository.updateVerified(
                 resetId,
-                PASSWORD_RESET_STATUS_VERIFIED,
+                VerificationCodeStatus.VERIFIED.name(),
                 now,
                 now
         );
@@ -97,7 +95,7 @@ public class PasswordResetService {
     public CompletePasswordResetResponse completePasswordReset(String resetId, String password) {
         PasswordResetAttempt attempt = findPasswordResetAttempt(resetId);
 
-        if (!PASSWORD_RESET_STATUS_VERIFIED.equals(attempt.status())) {
+        if (!VerificationCodeStatus.VERIFIED.name().equals(attempt.status())) {
             throw new RegistrationException("Password reset code is not verified");
         }
 
@@ -110,7 +108,7 @@ public class PasswordResetService {
 
         passwordResetAttemptRepository.updateStatus(
                 resetId,
-                PASSWORD_RESET_STATUS_COMPLETED,
+                VerificationCodeStatus.COMPLETED.name(),
                 OffsetDateTime.now()
         );
 

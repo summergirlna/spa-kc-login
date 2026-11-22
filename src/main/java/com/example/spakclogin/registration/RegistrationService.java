@@ -1,8 +1,11 @@
 package com.example.spakclogin.registration;
 
+import com.example.spakclogin.common.code.VerificationCodeIssue;
+import com.example.spakclogin.common.code.VerificationCodeIssuer;
+import com.example.spakclogin.common.code.VerificationCodeStatus;
+import com.example.spakclogin.common.code.VerificationCodeValidator;
 import com.example.spakclogin.keycloak.KeycloakAdminService;
 import com.example.spakclogin.mail.MailSender;
-import com.example.spakclogin.registration.component.ConfirmationCodeGenerator;
 import com.example.spakclogin.registration.component.PasswordValidator;
 import com.example.spakclogin.registration.dto.CompleteRegistrationResponse;
 import com.example.spakclogin.registration.dto.StartRegistrationResponse;
@@ -21,18 +24,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RegistrationService {
 
-    private static final int CONFIRMATION_CODE_MAX_EXPIRES_MINUTES = 10;
-
-    private static final String REGISTRATION_STATUS_CODE_SENT = "CODE_SENT";
-    private static final String REGISTRATION_STATUS_VERIFIED = "VERIFIED";
-    private static final String REGISTRATION_STATUS_COMPLETED = "COMPLETED";
     private static final String USER_STATUS_ACTIVE = "ACTIVE";
 
     private final RegistrationAttemptRepository registrationAttemptRepository;
     private final AppUserRepository appUserRepository;
     private final KeycloakAdminService keycloakAdminService;
     private final MailSender mailSender;
-    private final ConfirmationCodeGenerator confirmationCodeGenerator;
+    private final VerificationCodeIssuer verificationCodeIssuer;
+    private final VerificationCodeValidator verificationCodeValidator;
     private final PasswordValidator passwordValidator;
 
     /// 仮登録開始処理
@@ -47,22 +46,24 @@ public class RegistrationService {
     @Transactional
     public StartRegistrationResponse startRegistration(String email) {
         String registrationId = UUID.randomUUID().toString();
-        String code = confirmationCodeGenerator.generate();
-
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime expiresAt = now.plusMinutes(CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
+        VerificationCodeIssue issue = verificationCodeIssuer.issue();
 
         registrationAttemptRepository.insert(
                 registrationId,
                 email,
-                code,
-                REGISTRATION_STATUS_CODE_SENT,
-                expiresAt,
-                now,
-                now
+                issue.code(),
+                VerificationCodeStatus.CODE_SENT.name(),
+                issue.expiresAt(),
+                issue.issuedAt(),
+                issue.issuedAt()
         );
 
-        mailSender.sendConfirmationCode(registrationId, email, code, CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
+        mailSender.sendConfirmationCode(
+                registrationId,
+                email,
+                issue.code(),
+                issue.expiresInMinutes()
+        );
 
         return new StartRegistrationResponse(
                 registrationId, "Confirmation code generated. Please check runtime-data/mails."
@@ -73,29 +74,26 @@ public class RegistrationService {
     public StartRegistrationResponse resendConfirmationCode(String registrationId) {
         RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
 
-        if (REGISTRATION_STATUS_VERIFIED.equals(attempt.status())
-                || REGISTRATION_STATUS_COMPLETED.equals(attempt.status())) {
+        if (VerificationCodeStatus.VERIFIED.name().equals(attempt.status())
+                || VerificationCodeStatus.COMPLETED.name().equals(attempt.status())) {
             throw new RegistrationException("Confirmation code cannot be resent for this registration.");
         }
 
-        String code = confirmationCodeGenerator.generate();
-
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime expiresAt = now.plusMinutes(CONFIRMATION_CODE_MAX_EXPIRES_MINUTES);
+        VerificationCodeIssue issue = verificationCodeIssuer.issue();
 
         registrationAttemptRepository.updateConfirmationCode(
                 registrationId,
-                code,
-                REGISTRATION_STATUS_CODE_SENT,
-                expiresAt,
-                now
+                issue.code(),
+                VerificationCodeStatus.CODE_SENT.name(),
+                issue.expiresAt(),
+                issue.issuedAt()
         );
 
         mailSender.sendConfirmationCode(
                 registrationId,
                 attempt.email(),
-                code,
-                CONFIRMATION_CODE_MAX_EXPIRES_MINUTES
+                issue.code(),
+                issue.expiresInMinutes()
         );
 
         return new StartRegistrationResponse(
@@ -108,24 +106,25 @@ public class RegistrationService {
     public void confirmCode(String registrationId, String code) {
         RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
 
-        if (REGISTRATION_STATUS_VERIFIED.equals(attempt.status())
-                || REGISTRATION_STATUS_COMPLETED.equals(attempt.status())) {
+        if (VerificationCodeStatus.VERIFIED.name().equals(attempt.status())
+                || VerificationCodeStatus.COMPLETED.name().equals(attempt.status())) {
             return;
         }
 
-        if (OffsetDateTime.now().isAfter(attempt.expiresAt())) {
-            throw new RegistrationException("Confirmation code has expired");
-        }
+        verificationCodeValidator.validateNotExpired(
+                attempt.expiresAt(),
+                "Confirmation code has expired");
 
-        if (!attempt.confirmationCode().equals(code)) {
-            throw new RegistrationException("Confirmation code is invalid");
-        }
+        verificationCodeValidator.validateCode(
+                attempt.confirmationCode(),
+                code,
+                "Confirmation code is invalid");
 
         OffsetDateTime now = OffsetDateTime.now();
 
         registrationAttemptRepository.updateVerified(
                 registrationId,
-                REGISTRATION_STATUS_VERIFIED,
+                VerificationCodeStatus.VERIFIED.name(),
                 now,
                 now
         );
@@ -136,7 +135,7 @@ public class RegistrationService {
     public CompleteRegistrationResponse completeRegistration(String registrationId, String password, MfaType mfaType) {
         RegistrationAttempt attempt = findRegistrationAttempt(registrationId);
 
-        if (!REGISTRATION_STATUS_VERIFIED.equals(attempt.status())) {
+        if (!VerificationCodeStatus.VERIFIED.name().equals(attempt.status())) {
             throw new RegistrationException("Confirmation code is not verified");
         }
 
@@ -168,7 +167,7 @@ public class RegistrationService {
 
         registrationAttemptRepository.updateStatus(
                 registrationId,
-                REGISTRATION_STATUS_COMPLETED,
+                VerificationCodeStatus.COMPLETED.name(),
                 now
         );
 

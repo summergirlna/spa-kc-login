@@ -4,11 +4,11 @@ import {
     confirmRegistrationCode, resendRegistrationCode,
     startRegistration
 } from '../../api/registrationApi'
-import {RegisterCodeStep} from './RegisterCodeStep'
 import {RegisterCompleteStep} from './RegisterCompleteStep'
-import {RegisterEmailStep} from './RegisterEmailStep'
-import {RegisterPasswordStep} from './RegisterPasswordStep'
 import {RegisterMfaStep} from './RegisterMfaStep.jsx';
+import {EmailStep} from "../../components/EmailStep.jsx";
+import {CodeStep} from "../../components/CodeStep.jsx";
+import {PasswordStep} from "../../components/PasswordStep.jsx";
 
 export function RegistrationFlow({onBackToLogin}) {
     const [step, setStep] = useState('email')
@@ -118,10 +118,15 @@ export function RegistrationFlow({onBackToLogin}) {
 
     if (step === 'email') {
         return (
-            <RegisterEmailStep
+            <EmailStep
+                title="Create account"
+                description="メールアドレスを入力してください。"
                 email={email}
+                message={message}
                 error={error}
                 loading={loading}
+                submitLabel="Send confirmation code"
+                loadingLabel="Sending..."
                 onEmailChange={setEmail}
                 onBack={resetAndBackToLogin}
                 onSubmit={handleStartRegistration}
@@ -131,7 +136,9 @@ export function RegistrationFlow({onBackToLogin}) {
 
     if (step === 'code') {
         return (
-            <RegisterCodeStep
+            <CodeStep
+                title="Confirmation code"
+                description="確認コードを入力してください。"
                 code={code}
                 message={message}
                 error={error}
@@ -146,11 +153,15 @@ export function RegistrationFlow({onBackToLogin}) {
 
     if (step === 'password') {
         return (
-            <RegisterPasswordStep
+            <PasswordStep
+                title="Password"
+                description="パスワードを設定してください。"
                 password={password}
                 message={message}
                 error={error}
                 loading={loading}
+                submitLabel="Next"
+                loadingLabel="Saving..."
                 onPasswordChange={setPassword}
                 onCancel={resetAndBackToLogin}
                 onSubmit={handlePasswordSubmit}
