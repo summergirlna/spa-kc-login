@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {
     completePasswordReset,
-    confirmPasswordResetCode,
+    confirmPasswordResetCode, resendPasswordResetCode,
     startPasswordReset
 } from '../../api/passwordResetApi'
 import {EmailStep} from "../../components/EmailStep.jsx";
@@ -85,6 +85,24 @@ export function PasswordResetFlow({onBackToLogin}) {
             })
     }
 
+    const handleResendPasswordResetCode = () => {
+        setError('')
+        setMessage('')
+        setLoading(true)
+
+        resendPasswordResetCode(resetId)
+            .then(() => {
+                setCode('')
+                setMessage('パスワードリセット用の確認コードを再送しました。runtime-data/mails を確認してください。')
+            })
+            .catch((error) => {
+                setError(error.message)
+            })
+            .finally(() => {
+                setLoading(false)
+            })
+    }
+
     if (step === 'email') {
         return (
             <EmailStep
@@ -114,6 +132,7 @@ export function PasswordResetFlow({onBackToLogin}) {
                 loading={loading}
                 onCodeChange={setCode}
                 onCancel={resetAndBackToLogin}
+                onResend={handleResendPasswordResetCode}
                 onSubmit={handleConfirmCode}
             />
         )

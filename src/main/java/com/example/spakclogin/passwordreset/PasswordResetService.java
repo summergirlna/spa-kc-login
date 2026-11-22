@@ -62,6 +62,38 @@ public class PasswordResetService {
     }
 
     @Transactional
+    public StartPasswordResetResponse resendPasswordResetCode(String resetId) {
+        PasswordResetAttempt attempt = findPasswordResetAttempt(resetId);
+
+        if (VerificationCodeStatus.VERIFIED.name().equals(attempt.status())
+                || VerificationCodeStatus.COMPLETED.name().equals(attempt.status())) {
+            throw new RegistrationException("Password reset code cannot be resent for this reset request.");
+        }
+
+        VerificationCodeIssue issue = verificationCodeIssuer.issue();
+
+        passwordResetAttemptRepository.updateConfirmationCode(
+                resetId,
+                issue.code(),
+                VerificationCodeStatus.CODE_SENT.name(),
+                issue.expiresAt(),
+                issue.issuedAt()
+        );
+
+        mailSender.sendPasswordResetCode(
+                resetId,
+                attempt.email(),
+                issue.code(),
+                issue.expiresInMinutes()
+        );
+
+        return new StartPasswordResetResponse(
+                resetId,
+                "Password reset code resent. Please check runtime-data/mails."
+        );
+    }
+
+    @Transactional
     public void confirmCode(String resetId, String code) {
         PasswordResetAttempt attempt = findPasswordResetAttempt(resetId);
 

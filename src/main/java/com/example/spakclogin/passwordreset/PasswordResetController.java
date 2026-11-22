@@ -38,6 +38,13 @@ public class PasswordResetController {
         );
     }
 
+    @PostMapping("/resend-code")
+    public StartPasswordResetResponse resendPasswordResetCode(
+            @Valid @RequestBody ResendPasswordResetCodeRequest request
+    ) {
+        return passwordResetService.resendPasswordResetCode(request.getResetId());
+    }
+
     @ExceptionHandler(RegistrationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleRegistrationException(RegistrationException exception) {

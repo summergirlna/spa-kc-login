@@ -85,4 +85,21 @@ public interface PasswordResetAttemptRepository {
             @Param("status") String status,
             @Param("updatedAt") OffsetDateTime updatedAt
     );
+
+    @Update("""
+        UPDATE password_reset_attempts
+        SET confirmation_code = #{confirmationCode},
+            status = #{status},
+            verified_at = NULL,
+            expires_at = #{expiresAt},
+            updated_at = #{updatedAt}
+        WHERE reset_id = #{resetId}
+        """)
+    void updateConfirmationCode(
+            @Param("resetId") String resetId,
+            @Param("confirmationCode") String confirmationCode,
+            @Param("status") String status,
+            @Param("expiresAt") OffsetDateTime expiresAt,
+            @Param("updatedAt") OffsetDateTime updatedAt
+    );
 }

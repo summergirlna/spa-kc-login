@@ -19,3 +19,9 @@ export function completePasswordReset(resetId, password) {
         password
     })
 }
+
+export function resendPasswordResetCode(resetId) {
+    return postJson('/api/password-reset/resend-code', {
+        resetId
+    })
+}
