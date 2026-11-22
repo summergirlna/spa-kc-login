@@ -27,6 +27,10 @@ keycloak設定
 - Client
   - ClientID
     - spa-client
+  - Root URL
+    - http://localhost/
+  - Home URL
+    - http://localhost/
   - Valid redirect URIs
     - http://localhost/*
   - Valid post logout redirect URIs
