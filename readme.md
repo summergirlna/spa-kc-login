@@ -23,6 +23,23 @@
 keycloak設定
 
 - Realm
+  - spa-kc-login
 - Client
+  - ClientID
+    - spa-client
+  - Valid redirect URIs
+    - http://localhost/*
+  - Valid post logout redirect URIs
+    - http://localhost/*
+  - Web origins
+    - http://localhost
 - Theme
+  - Login theme
+    - spa-login
 - User Profile
+  - Attribute [Name]
+    - mfa_type
+  - Display name
+    - MFA Type
+  - permission
+    - Adminにチェック(2つとも)
