@@ -8,13 +8,16 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import java.security.SecureRandom;
+
 public class EmailOtpAuthenticator implements Authenticator {
 
     private static final Logger logger = Logger.getLogger(EmailOtpAuthenticator.class);
 
     private static final String MFA_TYPE_ATTRIBUTE = "mfa_type";
     private static final String MFA_TYPE_EMAIL = "EMAIL";
-    private static final String FIXED_OTP = "123456";
+    private static final String EMAIL_OTP_AUTH_NOTE = "email_otp_code";
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     @Override
     public void authenticate(AuthenticationFlowContext context) {
@@ -38,10 +41,14 @@ public class EmailOtpAuthenticator implements Authenticator {
             return;
         }
 
+        String otp = generateOtp();
+        context.getAuthenticationSession().setAuthNote(EMAIL_OTP_AUTH_NOTE, otp);
+
         logger.infof(
-                "Email OTP challenge displayed. username=%s, mfa_type=%s",
+                "Email OTP challenge displayed. username=%s, mfa_type=%s, otp=%s",
                 user.getUsername(),
-                mfaType
+                mfaType,
+                otp
         );
 
         Response challenge = context.form()
@@ -56,11 +63,15 @@ public class EmailOtpAuthenticator implements Authenticator {
                 .getDecodedFormParameters()
                 .getFirst("otp");
 
-        if (FIXED_OTP.equals(otp)) {
+        String expectedOtp = context.getAuthenticationSession()
+                .getAuthNote(EMAIL_OTP_AUTH_NOTE);
+
+        if (expectedOtp != null && expectedOtp.equals(otp)) {
             logger.infof(
                     "Email OTP verification succeeded. username=%s",
                     context.getUser().getUsername()
             );
+            context.getAuthenticationSession().removeAuthNote(EMAIL_OTP_AUTH_NOTE);
             context.success();
             return;
         }
@@ -95,5 +106,9 @@ public class EmailOtpAuthenticator implements Authenticator {
     @Override
     public void close() {
 
+    }
+
+    private String generateOtp() {
+        return "%06d".formatted(secureRandom.nextInt(1_000_000));
     }
 }
