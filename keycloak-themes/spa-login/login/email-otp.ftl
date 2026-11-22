@@ -26,6 +26,12 @@
                         value="Verify"
                 />
             </div>
+
+            <div class="${properties.kcFormGroupClass!}">
+                <a href="${url.loginRestartFlowUrl}">
+                    Back to login
+                </a>
+            </div>
         </form>
     </#if>
 </@layout.registrationLayout>
