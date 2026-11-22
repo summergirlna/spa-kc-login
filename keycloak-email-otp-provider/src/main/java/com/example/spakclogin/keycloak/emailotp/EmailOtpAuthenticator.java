@@ -9,6 +9,8 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
 import java.security.SecureRandom;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class EmailOtpAuthenticator implements Authenticator {
 
@@ -17,6 +19,8 @@ public class EmailOtpAuthenticator implements Authenticator {
     private static final String MFA_TYPE_ATTRIBUTE = "mfa_type";
     private static final String MFA_TYPE_EMAIL = "EMAIL";
     private static final String EMAIL_OTP_AUTH_NOTE = "email_otp_code";
+    private static final String EMAIL_OTP_EXPIRES_AT_AUTH_NOTE = "email_otp_expires_at";
+    private static final int EMAIL_OTP_EXPIRES_MINUTES = 5;
     private static final SecureRandom secureRandom = new SecureRandom();
 
     @Override
@@ -42,13 +46,20 @@ public class EmailOtpAuthenticator implements Authenticator {
         }
 
         String otp = generateOtp();
+        OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(EMAIL_OTP_EXPIRES_MINUTES);
+
         context.getAuthenticationSession().setAuthNote(EMAIL_OTP_AUTH_NOTE, otp);
+        context.getAuthenticationSession().setAuthNote(
+                EMAIL_OTP_EXPIRES_AT_AUTH_NOTE,
+                expiresAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        );
 
         logger.infof(
-                "Email OTP challenge displayed. username=%s, mfa_type=%s, otp=%s",
+                "Email OTP challenge displayed. username=%s, mfa_type=%s, otp=%s, expiresAt=%s",
                 user.getUsername(),
                 mfaType,
-                otp
+                otp,
+                expiresAt
         );
 
         Response challenge = context.form()
@@ -66,12 +77,51 @@ public class EmailOtpAuthenticator implements Authenticator {
         String expectedOtp = context.getAuthenticationSession()
                 .getAuthNote(EMAIL_OTP_AUTH_NOTE);
 
-        if (expectedOtp != null && expectedOtp.equals(otp)) {
+        String expiresAtValue = context.getAuthenticationSession()
+                .getAuthNote(EMAIL_OTP_EXPIRES_AT_AUTH_NOTE);
+
+        if (expectedOtp == null || expiresAtValue == null) {
+            logger.infof(
+                    "Email OTP verification failed because OTP is missing. username=%s",
+                    context.getUser().getUsername()
+            );
+
+            Response challenge = context.form()
+                    .setError("Verification code has expired. Please login again.")
+                    .createForm("email-otp.ftl");
+
+            context.challenge(challenge);
+            return;
+        }
+
+        OffsetDateTime expiresAt = OffsetDateTime.parse(
+                expiresAtValue,
+                DateTimeFormatter.ISO_OFFSET_DATE_TIME
+        );
+
+        if (OffsetDateTime.now().isAfter(expiresAt)) {
+            logger.infof(
+                    "Email OTP verification failed because OTP has expired. username=%s, expiresAt=%s",
+                    context.getUser().getUsername(),
+                    expiresAt
+            );
+
+            clearOtpAuthNotes(context);
+            Response challenge = context.form()
+                    .setError("Verification code has expired. Please login again.")
+                    .createForm("email-otp.ftl");
+
+            context.challenge(challenge);
+            return;
+        }
+
+        if (expectedOtp.equals(otp)) {
             logger.infof(
                     "Email OTP verification succeeded. username=%s",
                     context.getUser().getUsername()
             );
-            context.getAuthenticationSession().removeAuthNote(EMAIL_OTP_AUTH_NOTE);
+
+            clearOtpAuthNotes(context);
             context.success();
             return;
         }
@@ -110,5 +160,10 @@ public class EmailOtpAuthenticator implements Authenticator {
 
     private String generateOtp() {
         return "%06d".formatted(secureRandom.nextInt(1_000_000));
+    }
+
+    private void clearOtpAuthNotes(AuthenticationFlowContext context) {
+        context.getAuthenticationSession().removeAuthNote(EMAIL_OTP_AUTH_NOTE);
+        context.getAuthenticationSession().removeAuthNote(EMAIL_OTP_EXPIRES_AT_AUTH_NOTE);
     }
 }
