@@ -20,11 +20,25 @@
             </div>
 
             <div class="${properties.kcFormGroupClass!}">
-                <input
+                <button
                         class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}"
                         type="submit"
-                        value="Verify"
-                />
+                        name="action"
+                        value="verify"
+                >
+                    Verify
+                </button>
+            </div>
+
+            <div class="${properties.kcFormGroupClass!}">
+                <button
+                        class="${properties.kcButtonClass!} ${properties.kcButtonDefaultClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}"
+                        type="submit"
+                        name="action"
+                        value="resend"
+                >
+                    Resend code
+                </button>
             </div>
 
             <div class="${properties.kcFormGroupClass!}">

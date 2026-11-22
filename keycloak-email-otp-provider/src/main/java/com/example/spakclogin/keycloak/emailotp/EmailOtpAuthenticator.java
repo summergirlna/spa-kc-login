@@ -20,6 +20,7 @@ public class EmailOtpAuthenticator implements Authenticator {
     private static final String MFA_TYPE_EMAIL = "EMAIL";
     private static final String EMAIL_OTP_AUTH_NOTE = "email_otp_code";
     private static final String EMAIL_OTP_EXPIRES_AT_AUTH_NOTE = "email_otp_expires_at";
+    private static final String EMAIL_OTP_ACTION_RESEND = "resend";
     private static final int EMAIL_OTP_EXPIRES_MINUTES = 5;
     private static final SecureRandom secureRandom = new SecureRandom();
 
@@ -45,22 +46,7 @@ public class EmailOtpAuthenticator implements Authenticator {
             return;
         }
 
-        String otp = generateOtp();
-        OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(EMAIL_OTP_EXPIRES_MINUTES);
-
-        context.getAuthenticationSession().setAuthNote(EMAIL_OTP_AUTH_NOTE, otp);
-        context.getAuthenticationSession().setAuthNote(
-                EMAIL_OTP_EXPIRES_AT_AUTH_NOTE,
-                expiresAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-        );
-
-        logger.infof(
-                "Email OTP challenge displayed. username=%s, mfa_type=%s, otp=%s, expiresAt=%s",
-                user.getUsername(),
-                mfaType,
-                otp,
-                expiresAt
-        );
+        generateAndStoreOtp(context);
 
         Response challenge = context.form()
                 .createForm("email-otp.ftl");
@@ -70,6 +56,21 @@ public class EmailOtpAuthenticator implements Authenticator {
 
     @Override
     public void action(AuthenticationFlowContext context) {
+        String action = context.getHttpRequest()
+                .getDecodedFormParameters()
+                .getFirst("action");
+
+        if (EMAIL_OTP_ACTION_RESEND.equals(action)) {
+            generateAndStoreOtp(context);
+
+            Response challenge = context.form()
+                    .setInfo("Verification code resent.")
+                    .createForm("email-otp.ftl");
+
+            context.challenge(challenge);
+            return;
+        }
+
         String otp = context.getHttpRequest()
                 .getDecodedFormParameters()
                 .getFirst("otp");
@@ -156,6 +157,24 @@ public class EmailOtpAuthenticator implements Authenticator {
     @Override
     public void close() {
 
+    }
+
+    private void generateAndStoreOtp(AuthenticationFlowContext context) {
+        String otp = generateOtp();
+        OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(EMAIL_OTP_EXPIRES_MINUTES);
+
+        context.getAuthenticationSession().setAuthNote(EMAIL_OTP_AUTH_NOTE, otp);
+        context.getAuthenticationSession().setAuthNote(
+                EMAIL_OTP_EXPIRES_AT_AUTH_NOTE,
+                expiresAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        );
+
+        logger.infof(
+                "Email OTP generated. username=%s, otp=%s, expiresAt=%s",
+                context.getUser().getUsername(),
+                otp,
+                expiresAt
+        );
     }
 
     private String generateOtp() {
