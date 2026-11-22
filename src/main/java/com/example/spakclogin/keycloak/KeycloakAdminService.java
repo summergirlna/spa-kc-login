@@ -1,6 +1,7 @@
 package com.example.spakclogin.keycloak;
 
 import com.example.spakclogin.registration.RegistrationException;
+import com.example.spakclogin.registration.model.MfaType;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +13,7 @@ import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class KeycloakAdminService {
 
     private final RestClient restClient = RestClient.create();
 
-    public String createUser(String userId, String email, String password) {
+    public String createUser(String userId, String email, String password, MfaType mfaType) {
         String accessToken = getAdminAccessToken();
 
         try {
@@ -34,6 +36,7 @@ public class KeycloakAdminService {
                             email,
                             true,
                             true,
+                            Map.of("mfa_type", List.of(mfaType.name())),
                             List.of(new CredentialRequest(
                                     "password",
                                     password,
@@ -53,6 +56,7 @@ public class KeycloakAdminService {
                         String path = location.getPath();
                         return path.substring(path.lastIndexOf('/') + 1);
                     });
+
         } catch (HttpClientErrorException.Conflict exception) {
             throw new RegistrationException("Keycloak user already exists.");
         }
@@ -93,6 +97,7 @@ public class KeycloakAdminService {
             String email,
             Boolean enabled,
             Boolean emailVerified,
+            Map<String, List<String>> attributes,
             List<CredentialRequest> credentials
     ) {
     }

@@ -108,7 +108,8 @@ public class RegistrationService {
         String keycloakUserId = keycloakAdminService.createUser(
                 userId,
                 attempt.email(),
-                password
+                password,
+                mfaType
         );
 
         appUserRepository.insert(
