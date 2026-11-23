@@ -15,6 +15,10 @@
   - ユーザID
   - メールアドレス
   - keycloakユーザID
+  - MFAタイプ
+    - EMAIL
+    - TOTP
+    - WEBAUTHN
   - ステータス
   - 作成日時
   - 更新日時
@@ -67,6 +71,12 @@ keycloak設定
     - permission
       - Adminにチェック(2つとも)
 - Authentication
+  - Required actions
+    - Webauthn Register
+      - Enabled
+        - On
+      - Set as default action
+        - Off
   - Policies
     - Webauthn Policy
       - Relying party entity name
@@ -77,3 +87,138 @@ keycloak設定
         - preferred
       - Attestation conveyance preference
         - none
+  - Flows
+    - browser-with-email-otp-test
+      - Built-in の browser flow を複製して作成する
+      - Bindings
+        - Browser flow
+          - browser-with-email-otp-test
+      - Flow structure
+        - Cookie
+          - Requirement
+            - Alternative
+        - Kerberos
+          - Requirement
+            - Disabled
+        - Identity Provider Redirector
+          - Requirement
+            - Alternative
+        - browser-with-email-otp-test Organization
+          - Requirement
+            - Alternative
+        - browser-with-email-otp-test-forms
+          - Requirement
+            - Alternative
+          - Executions
+            - Username Password Form
+              - Requirement
+                - Required
+            - MFA - EMAIL
+              - Requirement
+                - Conditional
+              - Executions
+                - Condition - User Attribute
+                  - Requirement
+                    - Required
+                  - Config
+                    - Attribute name
+                      - mfa_type
+                    - Expected attribute value
+                      - EMAIL
+                - Email OTP Authenticator
+                  - Requirement
+                    - Required
+            - MFA - TOTP
+              - Requirement
+                - Conditional
+              - Executions
+                - Condition - User Attribute
+                  - Requirement
+                    - Required
+                  - Config
+                    - Attribute name
+                      - mfa_type
+                    - Expected attribute value
+                      - TOTP
+                - OTP Form
+                  - Requirement
+                    - Required
+            - MFA - WEBAUTHN
+              - Requirement
+                - Conditional
+              - Executions
+                - Condition - User Attribute
+                  - Requirement
+                    - Required
+                  - Config
+                    - Attribute name
+                      - mfa_type
+                    - Expected attribute value
+                      - WEBAUTHN
+                - WebAuthn Authenticator
+                  - Requirement
+                    - Required
+
+---
+MFA設定
+
+- アプリ側のMFAタイプ
+  - EMAIL
+    - ログイン時に Email OTP Authenticator を使用する
+  - TOTP
+    - 初回ログイン時に Keycloak の CONFIGURE_TOTP required action で認証アプリを登録する
+    - 2回目以降のログイン時に OTP Form を使用する
+  - WEBAUTHN
+    - 初回ログイン時に Keycloak の webauthn-register required action で WebAuthn credential を登録する
+    - 2回目以降のログイン時に WebAuthn Authenticator を使用する
+    - パスワードレスではなく、パスワード + WebAuthn MFA として使用する
+
+- Keycloak user attribute
+  - mfa_type
+    - EMAIL
+    - TOTP
+    - WEBAUTHN
+
+- ユーザ登録時の Keycloak requiredActions
+  - EMAIL
+    - なし
+  - TOTP
+    - CONFIGURE_TOTP
+  - WEBAUTHN
+    - webauthn-register
+
+---
+WebAuthn動作確認
+
+- ローカル環境
+  - Keycloak URL
+    - http://localhost/auth/admin
+  - WebAuthn Policy の Relying party ID
+    - localhost
+  - localhost は WebAuthn の HTTPS 要件の例外として扱われるため、ローカル検証可能
+
+- WEBAUTHNユーザの初回ログイン
+  - ユーザ登録時に MFA タイプとして WEBAUTHN を選択する
+  - Keycloak のユーザ属性に mfa_type=WEBAUTHN が保存される
+  - Keycloak の Required user actions に Webauthn Register が設定される
+  - 初回ログイン時、パスワード入力後に WebAuthn 登録画面が表示される
+  - セキュリティキー、Touch ID、iPhone / iPad 連携などで credential を登録する
+  - 登録完了後、Required user actions から Webauthn Register が消える
+  - Keycloak の Credentials に WebAuthn credential が追加される
+
+- WEBAUTHNユーザの2回目以降のログイン
+  - パスワード入力後、mfa_type=WEBAUTHN の条件に一致する
+  - MFA - WEBAUTHN subflow が実行される
+  - WebAuthn Authenticator により追加認証が要求される
+  - WebAuthn 認証に成功するとログインできる
+
+- EMAILユーザのログイン
+  - パスワード入力後、mfa_type=EMAIL の条件に一致する
+  - MFA - EMAIL subflow が実行される
+  - Email OTP Authenticator によりメール確認コード認証が要求される
+
+- TOTPユーザのログイン
+  - 初回ログイン時、CONFIGURE_TOTP により認証アプリを登録する
+  - 2回目以降は、パスワード入力後に mfa_type=TOTP の条件に一致する
+  - MFA - TOTP subflow が実行される
+  - OTP Form により認証アプリのコード入力が要求される
