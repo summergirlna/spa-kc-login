@@ -36,6 +36,17 @@ export function RegisterMfaStep({
                 メール確認コードを使う
             </label>
 
+            <label>
+                <input
+                    type="radio"
+                    name="mfaType"
+                    value="WEBAUTHN"
+                    checked={mfaType === 'WEBAUTHN'}
+                    onChange={(event) => onMfaTypeChange(event.target.value)}
+                />
+                セキュリティキーまたは生体認証を使う
+            </label>
+
             <ErrorMessage message={error}/>
 
             <ButtonRow>
