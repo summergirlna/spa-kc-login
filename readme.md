@@ -51,13 +51,18 @@ keycloak設定
         - view-users
         - manage-users
         - query-users
-- Theme
-  - Login theme
-    - spa-login
-- User Profile
-  - Attribute [Name]
-    - mfa_type
-  - Display name
-    - MFA Type
-  - permission
-    - Adminにチェック(2つとも)
+- Realm settings
+  - Theme
+    - Login theme
+      - spa-login
+  - User Profile
+    - Attribute [Name]
+      - mfa_type
+      - first name
+        - requiredを外す
+      - last name
+        - requiredを外す
+    - Display name
+      - MFA Type
+    - permission
+      - Adminにチェック(2つとも)
