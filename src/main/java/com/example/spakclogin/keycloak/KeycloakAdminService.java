@@ -136,6 +136,10 @@ public class KeycloakAdminService {
             return List.of("CONFIGURE_TOTP");
         }
 
+        if (mfaType == MfaType.WEBAUTHN) {
+            return List.of("webauthn-register");
+        }
+
         return List.of();
     }
 
