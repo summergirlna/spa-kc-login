@@ -112,6 +112,25 @@ public class KeycloakAdminService {
                 .toBodilessEntity();
     }
 
+    public void updateEmail(String keycloakUserId, String email) {
+        String accessToken = getAdminAccessToken();
+
+        restClient.put()
+                .uri(properties.getServerUrl()
+                        + "/admin/realms/"
+                        + properties.getRealm()
+                        + "/users/"
+                        + keycloakUserId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new UpdateEmailRequest(
+                        email,
+                        true
+                ))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     private List<String> requiredActionsFor(MfaType mfaType) {
         if (mfaType == MfaType.TOTP) {
             return List.of("CONFIGURE_TOTP");
@@ -147,6 +166,12 @@ public class KeycloakAdminService {
             String id,
             String username,
             String email
+    ) {
+    }
+
+    public record UpdateEmailRequest(
+            String email,
+            Boolean emailVerified
     ) {
     }
 

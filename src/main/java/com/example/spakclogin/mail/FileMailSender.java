@@ -50,6 +50,25 @@ public class FileMailSender implements MailSender {
         }
     }
 
+    @Override
+    public void sendEmailChangeCode(String changeId, String email, String code, int expiresInMinutes) {
+        createDirectories();
+
+        String content = """
+                To: %s
+                Subject: Email change code
+
+                Your email change code is: %s
+                This code expires in %d minutes.
+                """.formatted(email, code, expiresInMinutes);
+
+        try {
+            Files.writeString(mailsPath.resolve("email-change-" + changeId + ".txt"), content);
+        } catch (IOException exception) {
+            throw new MailSendException("Failed to write mail file.", exception);
+        }
+    }
+
     private void createDirectories() {
         try {
             Files.createDirectories(mailsPath);

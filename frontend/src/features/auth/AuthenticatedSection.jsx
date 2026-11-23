@@ -7,6 +7,7 @@ export function AuthenticatedSection({
                                          message,
                                          onLogout,
                                          onChangePassword,
+                                         onChangeEmail,
                                          onReload
                                      }) {
     return (
@@ -16,6 +17,9 @@ export function AuthenticatedSection({
                 <p>Logged in as: {username}</p>
                 <button type="button" onClick={onChangePassword}>
                     Change password
+                </button>
+                <button type="button" onClick={onChangeEmail}>
+                    Change email
                 </button>
                 <button type="button" onClick={onLogout}>
                     Logout

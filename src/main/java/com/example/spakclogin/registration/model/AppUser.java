@@ -7,6 +7,7 @@ public record AppUser(
         String userId,
         String email,
         String keycloakUserId,
+        String mfaType,
         String status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

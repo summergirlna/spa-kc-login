@@ -42,3 +42,26 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_attempts_email
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_attempts_expires_at
     ON password_reset_attempts (expires_at);
+
+CREATE TABLE IF NOT EXISTS email_change_attempts (
+    change_id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(20) NOT NULL,
+    keycloak_user_id VARCHAR(100) NOT NULL,
+    current_email VARCHAR(255) NOT NULL,
+    new_email VARCHAR(255) NOT NULL,
+    confirmation_code VARCHAR(6) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    verified_at TIMESTAMP WITH TIME ZONE NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_change_attempts_user_id
+    ON email_change_attempts (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_email_change_attempts_keycloak_user_id
+    ON email_change_attempts (keycloak_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_email_change_attempts_new_email
+    ON email_change_attempts (new_email);

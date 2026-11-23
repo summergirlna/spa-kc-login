@@ -1,11 +1,10 @@
 package com.example.spakclogin.registration.repository;
 
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
+import com.example.spakclogin.registration.model.AppUser;
+import org.apache.ibatis.annotations.*;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
 @Mapper
 public interface AppUserRepository {
@@ -50,6 +49,33 @@ public interface AppUserRepository {
             @Param("mfaType") String mfaType,
             @Param("status") String status,
             @Param("createdAt") OffsetDateTime createdAt,
+            @Param("updatedAt") OffsetDateTime updatedAt
+    );
+
+    @Select("""
+            SELECT
+                id,
+                user_id AS userId,
+                email,
+                keycloak_user_id AS keycloakUserId,
+                mfa_type AS mfaType,
+                status,
+                created_at AS createdAt,
+                updated_at AS updatedAt
+            FROM app_users
+            WHERE keycloak_user_id = #{keycloakUserId}
+            """)
+    Optional<AppUser> findByKeycloakUserId(@Param("keycloakUserId") String keycloakUserId);
+
+    @Update("""
+            UPDATE app_users
+            SET email = #{email},
+                updated_at = #{updatedAt}
+            WHERE user_id = #{userId}
+            """)
+    void updateEmail(
+            @Param("userId") String userId,
+            @Param("email") String email,
             @Param("updatedAt") OffsetDateTime updatedAt
     );
 }

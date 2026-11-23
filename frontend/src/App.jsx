@@ -6,6 +6,7 @@ import {LoginSection} from "./features/auth/LoginSection.jsx";
 import {RegistrationFlow} from "./features/registration/RegistrationFlow.jsx";
 import {AuthenticatedSection} from "./features/auth/AuthenticatedSection.jsx";
 import {PasswordResetFlow} from "./features/password-reset/PasswordResetFlow.jsx";
+import {EmailChangeFlow} from "./features/account/EmailChangeFlow.jsx";
 
 function App() {
     const [screen, setScreen] = useState('login')
@@ -103,7 +104,7 @@ function App() {
                 <PasswordResetFlow onBackToLogin={() => setScreen('login')}/>
             )}
 
-            {keycloakReady && authenticated && (
+            {keycloakReady && authenticated && screen !== 'emailChange' && (
                 <AuthenticatedSection
                     username={username}
                     loading={loading}
@@ -111,8 +112,13 @@ function App() {
                     message={message}
                     onLogout={logout}
                     onChangePassword={changePassword}
+                    onChangeEmail={() => setScreen('emailChange')}
                     onReload={loadHello}
                 />
+            )}
+
+            {keycloakReady && authenticated && screen === 'emailChange' && (
+                <EmailChangeFlow onCancel={() => setScreen('authenticated')}/>
             )}
         </main>
     )
