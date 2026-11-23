@@ -66,3 +66,14 @@ keycloak設定
       - MFA Type
     - permission
       - Adminにチェック(2つとも)
+- Authentication
+  - Policies
+    - Webauthn Policy
+      - Relying party entity name
+        - spa-kc-login
+      - Relying party ID
+        - localhost
+      - User verification requirement
+        - preferred
+      - Attestation conveyance preference
+        - none
