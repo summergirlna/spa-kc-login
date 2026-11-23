@@ -259,7 +259,7 @@ Browser flow binding に `browser-with-email-otp-test` を設定します。
 
 ## Flow構成
 
-browser-with-email-otp-test ├── Cookie Alternative ├── Kerberos Disabled ├── Identity Provider Redirector Alternative ├── browser-with-email-otp-test Organization Alternative └── browser-with-email-otp-test-forms Alternative ├── Username Password Form Required ├── MFA - EMAIL Conditional │ ├── Condition - User Attribute Required │ │ ├── Attribute name: mfa_type │ │ └── Expected attribute value: EMAIL │ └── Email OTP Authenticator Required ├── MFA - TOTP Conditional │ ├── Condition - User Attribute Required │ │ ├── Attribute name: mfa_type │ │ └── Expected attribute value: TOTP │ └── OTP Form Required └── MFA - WEBAUTHN Conditional ├── Condition - User Attribute Required │ ├── Attribute name: mfa_type │ └── Expected attribute value: WEBAUTHN └── WebAuthn Authenticator Required
+![flow](keycloak-flow.png)
 
 
 ## 分岐仕様
